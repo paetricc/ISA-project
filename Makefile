@@ -1,11 +1,22 @@
 CC=gcc
-CFLAGS=-std=gnu99 -pedantic -Wall -Wextra -lpcap
-NAME=flow
+CFLAGS=-std=c99 -pedantic -Wall -Wextra -lpcap
+EXECUTABLE=flow
+VARGS=--tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes
+OBJS=flow.o arguments.o
 
-all: run
+all: clean $(EXECUTABLE)
 
-run:
-	$(CC) $(CFLAGS) $(NAME).c -o $(NAME) -lpcap
+$(EXECUTABLE): $(OBJS)
+	$(CC) $(CFLAGS) -o flow $^
+
+flow.o: flow.c
+	$(CC) $(CFLAGS) -c $^
+
+arguments.o: arguments.c
+	$(CC) $(CFLAGS) -c $^
+
+valgrind: $(EXECUTABLE)
+	valgrind $(VARGS) ./$(EXECUTABLE)
 
 clean:
-	-rm -f *.o $(NAME)
+	rm -f $(EXECUTABLE) *.o

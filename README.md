@@ -14,7 +14,7 @@ V rámci projektu implementujte NetFlow exportér, který ze zachycených síťo
 Použití:
 Program musí podporovat následující syntax pro spuštění:
 
-./flow [-f <file>] [-c <netflow_collector>[:<port>]] [-a <active_timer>] [-i <inactive_timer>] [-m <count>]
+./flow [-f \<file\>] [-c \<netflow_collector\>[:\<port\>]] [-a \<active_timer\>] [-i \<inactive_timer\>] [-m \<count\>]
 
 kde
 

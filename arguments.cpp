@@ -2,23 +2,27 @@
 // Created by bartu on 4.10.22.
 //
 
+#include <iostream>
 #include "arguments.h"
 
 void parse_args(int argc, char **argv, options *options) {
     UNUSED(default_options);
-    int c;
+    int c = 0;
     char *hostname;
-    FILE *file;
+
+    if (argc % 2 == 0) {
+        fprintf(stderr, "Bad count of arguments");
+        exit(EXIT_FAILURE);
+    }
 
     while((c = getopt(argc, argv, "f:c:a:i:m:")) != -1) {
         switch(c) {
             case 'f':
-                file = fopen(optarg, "r");
-                if(!file) {
+                options->file = fopen(optarg, "r");
+                if(!options->file) {
                     printf("File not found.");
                     exit(EXIT_FAILURE);
                 }
-                fclose(file);
                 break;
             case 'c':
                 hostname = option_split(optarg, &options);
@@ -48,6 +52,9 @@ void parse_args(int argc, char **argv, options *options) {
                     exit(EXIT_FAILURE);
                 }
                 break;
+            case '?':
+                fprintf(stderr, "Bad arguments\n");
+                exit(EXIT_FAILURE);
             default:
                 help_print();
                 exit(EXIT_FAILURE);
@@ -67,21 +74,12 @@ bool isNum(const char *str) {
 
 void process_host_name(options **options, const char *hostname) {
     struct hostent *host = gethostbyname(hostname);
-    struct in_addr **address;
 
-    if (host) {
-        printf("Hostname: %s\n", host->h_name);
-    } else {
+    if (!host) {
         herror("Error\n");
+        exit(EXIT_FAILURE);
     }
-
-    address = (struct in_addr **)host->h_addr_list;
-    (*options)->h_addr_list = host->h_addr_list;
-
-    for(int i = 0; address[i] != nullptr; i++) {
-        printf("%s", inet_ntoa(*address[i]));
-    }
-    printf("\n");
+    (*options)->hostent = host;
 }
 
 char *option_split(char *collectorPort, options **options) {

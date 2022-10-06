@@ -24,12 +24,12 @@ typedef struct Options options;
 
 static struct Options {
     FILE*          file;
-    char **        h_addr_list;
+    struct hostent *hostent;
     unsigned int   port;
     unsigned int   ac_timer;
     unsigned int   in_timer;
     unsigned int   count;
-} default_options = {nullptr, nullptr, 2055, 60, 10, 1024};
+} default_options = {stdin, nullptr, 2055, 60, 10, 1024};
 
 void parse_args(int, char **, options *);
 

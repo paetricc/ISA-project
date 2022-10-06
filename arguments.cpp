@@ -64,12 +64,12 @@ bool isNum(const char *str) {
 }
 
 void option_split(char *collectorPort, options **options) {
-    char *delimeter = ":";
-    char *token = NULL;
+    char const *delimeter = ":";
+    char *token;
 
     token = strtok(collectorPort, delimeter);
     (*options)->collector = strToInt(token);
-    token = strtok(NULL, delimeter);
+    token = strtok(nullptr, delimeter);
 
     if(token) {
         if(!isNum(token) || !BETWEEN(0, strToInt(token), 65535)) {
@@ -81,11 +81,11 @@ void option_split(char *collectorPort, options **options) {
 }
 
 int strToInt(const char* str) {
-    char *ptr = NULL;
+    char *ptr = nullptr;
     return (int)strtol(str, &ptr, 10);
 }
 
-void help_print(void) {
+void help_print() {
     printf("NAME\n\t");
     printf("NetFlow generator of data from captured network traffic\n\n");
     printf("SYNOPSIS\n\t");
@@ -99,3 +99,6 @@ void help_print(void) {
     printf("AUTHOR\n\t");
     printf("Written by Tomas Bartu.");
 }
+//
+// Created by bartu on 6.10.22.
+//

@@ -8,13 +8,13 @@ OBJS=flow.o arguments.o
 all: clean $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJS)
-	$(CC) $(CFLAGS) -o $(EXECUTABLE) $^
+	$(CPP) $(CFLAGS) -o $(EXECUTABLE) $^
 
 flow.o: flow.cpp
-	$(CC) $(CFLAGS) -c $^
+	$(CPP) $(CFLAGS) -c $^
 
 arguments.o: arguments.cpp
-	$(CC) $(CFLAGS) -c $^
+	$(CPP) $(CFLAGS) -c $^
 
 valgrind: $(EXECUTABLE)
 	valgrind $(VARGS) ./$(EXECUTABLE)

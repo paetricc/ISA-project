@@ -5,5 +5,5 @@ SET(CMAKE_CXX_STANDARD 14)
 
 ADD_EXECUTABLE(run flow.cpp)
 
-ADD_LIBRARY(libs SHARED arguments.cpp)
+ADD_LIBRARY(libs SHARED arguments.cpp pcap.cpp)
 TARGET_LINK_LIBRARIES(run libs)

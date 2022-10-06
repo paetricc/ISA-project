@@ -6,9 +6,12 @@
 #include "arguments.h"
 
 void parse_args(int argc, char **argv, options *options) {
-    UNUSED(default_options);
-    int c = 0;
+    int c;
     char *hostname;
+    FILE *file;
+
+    // set default values for hostnent
+    process_host_name(&options, "localhost");
 
     if (argc % 2 == 0) {
         fprintf(stderr, "Bad count of arguments");
@@ -18,11 +21,16 @@ void parse_args(int argc, char **argv, options *options) {
     while((c = getopt(argc, argv, "f:c:a:i:m:")) != -1) {
         switch(c) {
             case 'f':
-                options->file = fopen(optarg, "r");
-                if(!options->file) {
-                    printf("File not found.");
+                file = fopen(optarg, "r");
+                if(!file) {
+                    fprintf(stderr, "File not found.");
                     exit(EXIT_FAILURE);
                 }
+                if(fclose(file) == EOF){
+                    fprintf(stderr, "Unable to close file.\n");
+                    exit(EXIT_FAILURE);
+                }
+                options->file= optarg;
                 break;
             case 'c':
                 hostname = option_split(optarg, &options);
@@ -119,6 +127,7 @@ void help_print() {
     printf("AUTHOR\n\t");
     printf("Written by Tomas Bartu.");
 }
+
 //
 // Created by bartu on 6.10.22.
 //

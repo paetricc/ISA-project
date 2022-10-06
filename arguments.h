@@ -10,11 +10,9 @@
 #include <cstring>
 #include <getopt.h>
 #include <cstdio>
-#include <netdb.h>
 #include <string>
+#include <netdb.h>
 #include <arpa/inet.h>
-
-#define UNUSED(var) ((void)(var))
 
 #define BETWEEN(first, number, last)  (((first) <= (number)) && ((number) <= (last)))
 
@@ -22,14 +20,14 @@ using namespace std;
 
 typedef struct Options options;
 
-static struct Options {
-    FILE*          file;
-    struct hostent *hostent;
-    unsigned int   port;
-    unsigned int   ac_timer;
-    unsigned int   in_timer;
-    unsigned int   count;
-} default_options = {stdin, nullptr, 2055, 60, 10, 1024};
+struct Options {
+    const char*    file     {"-"};
+    struct hostent *hostent {};
+    unsigned int   port     {2055};
+    unsigned int   ac_timer {60};
+    unsigned int   in_timer {10};
+    unsigned int   count    {1024};
+};
 
 void parse_args(int, char **, options *);
 

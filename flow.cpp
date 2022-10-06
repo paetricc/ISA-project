@@ -1,4 +1,5 @@
 #include "flow.h"
+#include "pcap.h"
 
 void printHost(struct hostent host) {
     struct in_addr **address;
@@ -11,7 +12,7 @@ void printHost(struct hostent host) {
 }
 
 void printOptions (options options) {
-    if (options.file == stdin) {
+    if (strcmp(options.file, "-") == 0) {
         printf("File: stdin\n");
     } else {
         printf("File: %p\n", options.file);
@@ -25,11 +26,11 @@ void printOptions (options options) {
 }
 
 int main(int argc, char **argv) {
-    options options = default_options;
-
+//    options options = default_options;
+    options options;
     parse_args(argc, argv, &options);
     printOptions(options);
-    fclose(options.file);
+    pcapInit(options);
     return 0;
 }
 

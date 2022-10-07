@@ -13,6 +13,7 @@
 #include <string>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <err.h>
 
 #define BETWEEN(first, number, last)  (((first) <= (number)) && ((number) <= (last)))
 

@@ -13,23 +13,19 @@ void parse_args(int argc, char **argv, options *options) {
     // set default values for hostnent
     process_host_name(&options, "localhost");
 
-    if (argc % 2 == 0) {
-        fprintf(stderr, "Bad count of arguments");
-        exit(EXIT_FAILURE);
-    }
+    if (argc % 2 == 0)
+        err(EXIT_FAILURE, "Bad count of arguments");
 
     while((c = getopt(argc, argv, "f:c:a:i:m:")) != -1) {
         switch(c) {
             case 'f':
                 file = fopen(optarg, "r");
-                if(!file) {
-                    fprintf(stderr, "File not found.");
-                    exit(EXIT_FAILURE);
-                }
-                if(fclose(file) == EOF){
-                    fprintf(stderr, "Unable to close file.\n");
-                    exit(EXIT_FAILURE);
-                }
+                if(!file)
+                    err(EXIT_FAILURE, "fopen() failed");
+
+                if(fclose(file) == EOF)
+                    err(EXIT_FAILURE, "fclose() failed\n");
+
                 options->file= optarg;
                 break;
             case 'c':
@@ -37,32 +33,25 @@ void parse_args(int argc, char **argv, options *options) {
                 process_host_name(&options, hostname);
                 break;
             case 'a':
-                if(isNum(optarg)) {
+                if(isNum(optarg))
                     options->ac_timer = strToInt(optarg);
-                } else {
-                    fprintf(stderr, "Number expected\n");
-                    exit(EXIT_FAILURE);
-                }
+                else
+                    err(EXIT_FAILURE, "Number after -a expected\n");
                 break;
             case 'i':
-                if (isNum(optarg)) {
+                if (isNum(optarg))
                     options->in_timer = strToInt(optarg);
-                } else {
-                    fprintf(stderr, "Number expected\n");
-                    exit(EXIT_FAILURE);
-                }
+                else
+                    err(EXIT_FAILURE, "Number after -i expected\n");
                 break;
             case 'm':
-                if (isNum(optarg)) {
+                if (isNum(optarg))
                     options->count = strToInt(optarg);
-                } else {
-                    fprintf(stderr, "Number expected\n");
-                    exit(EXIT_FAILURE);
-                }
+                else
+                    err(EXIT_FAILURE, "Number after -m expected\n");
                 break;
             case '?':
-                fprintf(stderr, "Bad arguments\n");
-                exit(EXIT_FAILURE);
+                err(EXIT_FAILURE, "Bad type of arguments\n");
             default:
                 help_print();
                 exit(EXIT_FAILURE);
@@ -84,7 +73,7 @@ void process_host_name(options **options, const char *hostname) {
     struct hostent *host = gethostbyname(hostname);
 
     if (!host) {
-        herror("Error\n");
+        herror("gethostbyname() failed");
         exit(EXIT_FAILURE);
     }
     (*options)->hostent = host;
@@ -99,10 +88,8 @@ char *option_split(char *collectorPort, options **options) {
     token = strtok(nullptr, delimeter);
 
     if(token) {
-        if(!isNum(token) || !BETWEEN(0, strToInt(token), 65535)) {
-            fprintf(stderr, "Undefined port.\n");
-            exit(EXIT_FAILURE);
-        }
+        if(!isNum(token) || !BETWEEN(0, strToInt(token), 65535))
+            err(EXIT_FAILURE, "Undefined port or port is not in correct range.\n");
         (*options)->port = strToInt(token);
     }
     return hostname;

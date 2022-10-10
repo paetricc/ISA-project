@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Soubor: pcap.h
+ * Soubor: packet.h
  *
  * Popis: Hlavičkový soubor pro zachytávání a analýza zachycené síťové
  * komunikace
@@ -9,8 +9,8 @@
  * Datum: 7.10.2022
  *****************************************************************************/
 
-#ifndef ISA_PROJECT_PCAP_H
-#define ISA_PROJECT_PCAP_H
+#ifndef ISA_PROJECT_PACKET_H
+#define ISA_PROJECT_PACKET_H
 
 #include <pcap.h>
 #include <pcap/pcap.h>
@@ -38,6 +38,6 @@ void handler(u_char *, const struct pcap_pkthdr *, const u_char *);
 
 unsigned long timeval_to_ms(struct timeval);
 
-#endif //ISA_PROJECT_PCAP_H
+#endif //ISA_PROJECT_PACKET_H
 
-/************** Konec souboru pcap.h ***************/
+/************** Konec souboru packet.h ***************/

@@ -2,7 +2,7 @@ CPP=g++
 CFLAGS=-std=c++14 -pedantic -Wall -Wextra
 EXECUTABLE=flow
 VARGS=--tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes
-OBJS=flow.o arguments.o pcap.o
+OBJS=flow.o arguments.o packet.o
 
 all: clean $(EXECUTABLE)
 
@@ -15,7 +15,7 @@ flow.o: flow.cpp
 arguments.o: arguments.cpp
 	$(CPP) $(CFLAGS) -c $^
 
-pcap.o: pcap.cpp
+packet.o: packet.cpp
 	$(CPP) $(CFLAGS) -c $^
 
 valgrind: $(EXECUTABLE)

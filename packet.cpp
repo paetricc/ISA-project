@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Soubor: pcap.cpp
+ * Soubor: packet.cpp
  *
  * Popis: Zachytávání a analýza zachycené síťové komunikace
  *
@@ -9,7 +9,7 @@
  *****************************************************************************/
 
 #include <iostream>
-#include "pcap.h"
+#include "packet.h"
 
 // srcIP, dstIP, sport, dport, prot
 std::map<tuple<string, string, int, int, int>, tuple<in_addr>> m;
@@ -54,8 +54,8 @@ string p_port_udp(const struct udphdr *udp_header) {
 }
 
 void print_map() {
-    for (auto it = m.cbegin(); it != m.cend(); it++) {
-        cout << "->" << get<0>(it->first) << " <- \n";
+    for (const auto & it : m) {
+        cout << "->" << get<0>(it.first) << " <- \n";
     }
     std::cout << '\n';
 }
@@ -114,4 +114,4 @@ unsigned long timeval_to_ms(struct timeval ts) {
     return ((ts.tv_usec + 500) / 1000) + (ts.tv_sec * 1000);
 }
 
-/************** Konec souboru pcap.cpp ***************/
+/************** Konec souboru packet.cpp ***************/

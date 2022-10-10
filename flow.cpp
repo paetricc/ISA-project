@@ -1,3 +1,13 @@
+/*****************************************************************************
+ * Soubor: flow.cpp
+ *
+ * Popis: Generátor NetFlow dat ze zachycené síťové komunikace
+ *
+ * Autor: Tomáš Bártů, xbartu11
+ *
+ * Datum: 7.10.2022
+ *****************************************************************************/
+
 #include "flow.h"
 #include "pcap.h"
 
@@ -18,19 +28,19 @@ void printOptions (options options) {
         printf("File: %p\n", options.file);
     }
     printHost(*options.hostent);
-    printf("Port: %d\n"
-           "Ac_timer: %d\n"
-           "In_timer: %d\n"
-           "Count: %d\n",
+    printf("Port: %ld\n"
+           "Ac_timer: %ld\n"
+           "In_timer: %ld\n"
+           "Count: %ld\n",
            options.port, options.ac_timer, options.in_timer, options.count);
 }
 
 int main(int argc, char **argv) {
-//    options options = default_options;
     options options;
     parse_args(argc, argv, &options);
-    printOptions(options);
+    //printOptions(options);
     pcapInit(options);
     return 0;
 }
 
+/************** Konec souboru flow.cpp ***************/

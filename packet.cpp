@@ -45,12 +45,14 @@ string p_port_tcp(const struct tcphdr *tcp_header) {
     /* Protože číslo portu je uloženo v tzv. "network byte order", tak ho převedeme na tzv. "host byte order" */
     printf("src port: %d\n", ntohs(tcp_header->th_sport));
     printf("dst port: %d\n", ntohs(tcp_header->th_dport));
+    return "";
 }
 
 string p_port_udp(const struct udphdr *udp_header) {
     /* Protože číslo portu je uloženo v tzv. "network byte order", tak ho převedeme na tzv. "host byte order" */
     printf("src port: %d\n", ntohs(udp_header->uh_sport));
     printf("dst port: %d\n", ntohs(udp_header->uh_dport));
+    return "";
 }
 
 void print_map() {
@@ -99,6 +101,7 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
 
         if(ip_header->ip_p == IPPROTO_TCP) {
             auto *tcp_header = (struct tcphdr *) (bytes + ip_len + ETH_HLEN);
+            printf("src port: %d\n", ntohs(tcp_header->th_sport));
             p_port_tcp(tcp_header);
         }
 

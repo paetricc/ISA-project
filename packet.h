@@ -28,6 +28,8 @@
 
 using namespace std;
 
+typedef	uint32_t tcp_seq;
+
 struct tcphdr_v
 {
     __extension__ union

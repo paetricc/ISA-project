@@ -12,7 +12,7 @@
 #include "packet.h"
 
 // srcIP, dstIP, sport, dport, prot
-std::map<tuple<string, string, int, int, int>, tuple<in_addr>> m;
+std::map<tuple<string, string, int, int, int>, tuple<struct NetFlowHDR, struct NetFlowRCD>> m;
 
 void pcapInit(options options) {
     pcap_t *handle = nullptr;
@@ -41,18 +41,24 @@ string p_ip(const struct ip *ip_header, int type) {
         err(EXIT_FAILURE, "Undefined error in p_ip()");
 }
 
-string p_port_tcp(const struct tcphdr *tcp_header) {
+uint16_t p_port_tcp(const struct tcphdr *tcp_header, int type) {
     /* Protože číslo portu je uloženo v tzv. "network byte order", tak ho převedeme na tzv. "host byte order" */
-    printf("src port: %d\n", ntohs(tcp_header->th_sport));
-    printf("dst port: %d\n", ntohs(tcp_header->th_dport));
-    return "";
+    if (type == SOURCE)
+        return ntohs(tcp_header->th_sport);
+    else if (type == DESTINATION)
+        return ntohs(tcp_header->th_dport);
+    else
+        err(EXIT_FAILURE, "Undefined error in p_ip()");
 }
 
-string p_port_udp(const struct udphdr *udp_header) {
+uint16_t p_port_udp(const struct udphdr *udp_header, int type) {
     /* Protože číslo portu je uloženo v tzv. "network byte order", tak ho převedeme na tzv. "host byte order" */
-    printf("src port: %d\n", ntohs(udp_header->uh_sport));
-    printf("dst port: %d\n", ntohs(udp_header->uh_dport));
-    return "";
+    if (type == SOURCE)
+        return ntohs(udp_header->uh_sport);
+    else if (type == DESTINATION)
+        return ntohs(udp_header->uh_dport);
+    else
+        err(EXIT_FAILURE, "Undefined error in p_ip()");
 }
 
 void print_map() {
@@ -67,10 +73,6 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
 
     auto *eth_header = (struct ether_header *) bytes;
 
-    printf("ts: %ld [ms]\n", timeval_to_ms(h->ts));
-
-
-
     /*auto pos = m.find(make_tuple(2, "HAHA"));
     if (pos == m.end()) {
         cout << "Neni :)" << '\n';
@@ -81,39 +83,34 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
 
     if(ntohs(eth_header->ether_type) == ETHERTYPE_IP) {
         auto *ip_header = (struct ip *) (bytes + ETH_HLEN);
-
         u_int ip_len = (ip_header->ip_hl & 0x0f) << 2;
 
         if(ip_header->ip_p == IPPROTO_ICMP) {
             auto *icmp_header = (struct icmphdr *) (bytes + ip_len + ETH_HLEN);
 
-            cout << p_ip(ip_header, SOURCE) << '\n';
+            // cout << p_ip(ip_header, SOURCE) << '\n';
             //cout << p_ip(ip_header, DESTINATION) << '\n';
+
+
             auto search = m.find(make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), 0, 0, icmp_header->type));
-            if (search != m.end()) {
-                std::cout << "Founded" << '\n';
-            } else {
+            if (!(search != m.end())) {
                 std::cout << "Not found\n";
-                m.insert(make_pair(make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), 0, 0, icmp_header->type), ip_header->ip_src));
+                //m.insert(make_pair(make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), 0, 0, icmp_header->type), netflow));
+            } else {
+                std::cout << "Founded" << '\n';
             }
 
         }
 
         if(ip_header->ip_p == IPPROTO_TCP) {
             auto *tcp_header = (struct tcphdr *) (bytes + ip_len + ETH_HLEN);
-            p_port_tcp(tcp_header);
         }
 
         if(ip_header->ip_p == IPPROTO_UDP) {
             auto *udp_header = (struct udphdr *) (bytes + ip_len + ETH_HLEN);
-            p_port_udp(udp_header);
         }
     }
     print_map();
-}
-
-unsigned long timeval_to_ms(struct timeval ts) {
-    return ((ts.tv_usec + 500) / 1000) + (ts.tv_sec * 1000);
 }
 
 /************** Konec souboru packet.cpp ***************/

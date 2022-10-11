@@ -2,8 +2,8 @@
 // Created by bartu on 11.10.22.
 //
 
-#ifndef ISA_PROJECT_STRUCTURES_H
-#define ISA_PROJECT_STRUCTURES_H
+#ifndef ISA_PROJECT_TCP_UDP_HDRS_H
+#define ISA_PROJECT_TCP_UDP_HDRS_H
 
 #include <stdint.h>
 
@@ -82,4 +82,4 @@ struct udphdr
     u_int16_t uh_sum;
 };
 
-#endif //ISA_PROJECT_STRUCTURES_H
+#endif //ISA_PROJECT_TCP_UDP_HDRS_H

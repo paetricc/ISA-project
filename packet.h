@@ -20,7 +20,7 @@
 #include <netinet/in.h>
 
 #include <iostream>
-#if defined (__FreeBSD__)
+#ifdef linux
     #include "structures.h"
 #else
     #include <netinet/tcp.h>

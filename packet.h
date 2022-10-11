@@ -18,11 +18,14 @@
 #include <netinet/ether.h>
 #include <netinet/ip.h>
 #include <netinet/in.h>
-#ifdef __FreeBSD__
-#include "structures.h"
+
+#include <iostream>
+#if defined (__FreeBSD__)
+    #include "structures.h"
 #else
-#   include <netinet/tcp.h>
+    #include <netinet/tcp.h>
 #endif
+
 #include <netinet/udp.h>
 #include <netinet/ip_icmp.h>
 #include <map>

@@ -41,7 +41,7 @@ string p_ip(const struct ip *ip_header, int type) {
         err(EXIT_FAILURE, "Undefined error in p_ip()");
 }
 
-string p_port_tcp(const struct tcphdr_v *tcp_header) {
+string p_port_tcp(const struct tcphdr *tcp_header) {
     /* Protože číslo portu je uloženo v tzv. "network byte order", tak ho převedeme na tzv. "host byte order" */
     printf("src port: %d\n", ntohs(tcp_header->th_sport));
     printf("dst port: %d\n", ntohs(tcp_header->th_dport));
@@ -100,7 +100,7 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
         }
 
         if(ip_header->ip_p == IPPROTO_TCP) {
-            auto *tcp_header = (struct tcphdr_v *) (bytes + ip_len + ETH_HLEN);
+            auto *tcp_header = (struct tcphdr *) (bytes + ip_len + ETH_HLEN);
             p_port_tcp(tcp_header);
         }
 

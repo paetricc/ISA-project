@@ -74,4 +74,12 @@ struct tcphdr
     };
 };
 
+struct udphdr
+{
+    u_int16_t uh_sport;
+    u_int16_t uh_dport;
+    u_int16_t uh_ulen;
+    u_int16_t uh_sum;
+};
+
 #endif //ISA_PROJECT_STRUCTURES_H

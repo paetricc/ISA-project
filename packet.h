@@ -18,19 +18,12 @@
 #include <netinet/ether.h>
 #include <netinet/ip.h>
 #include <netinet/in.h>
-
 #include <iostream>
-#ifdef linux
-    #include "structures.h"
-#else
-    #include <netinet/tcp.h>
-#endif
-
-#include <netinet/udp.h>
 #include <netinet/ip_icmp.h>
 #include <map>
 #include <tuple>
 #include <string>
+#include "structures.h"
 #include "arguments.h"
 
 using namespace std;

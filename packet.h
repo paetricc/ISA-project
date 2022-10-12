@@ -23,14 +23,19 @@
 #include <map>
 #include <tuple>
 #include <string>
+#include <chrono>
 #include "tcp_udp_hdrs.h"
 #include "arguments.h"
 
 using namespace std;
 
+#define UNDEFINED 0
 #define SOURCE 1
 #define DESTINATION 2
+#define NETFLOW_VERSION 5
 #define NETFLOW_MAX_EXPORTED_PACKETS 30
+
+#define ICMP(TYPE, CODE) (((TYPE) * 256) + (CODE))
 
 struct NetFlowHDR {
     uint16_t version;
@@ -45,8 +50,8 @@ struct NetFlowHDR {
 };
 
 struct NetFlowRCD {
-    uint32_t srdaddr;
-    uint32_t dstaddr;
+    in_addr  srdaddr;
+    in_addr  dstaddr;
     uint32_t nexthop;
     uint16_t input;
     uint16_t output;
@@ -69,6 +74,10 @@ struct NetFlowRCD {
 
 
 void pcapInit(options);
+
+uint32_t getUptimeDiff(pcap_pkthdr);
+
+uint32_t getSysUptime(pcap_pkthdr);
 
 void handler(u_char *, const struct pcap_pkthdr *, const u_char *);
 

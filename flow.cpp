@@ -9,7 +9,7 @@
  *****************************************************************************/
 
 #include "flow.h"
-#include "packet.h"
+#include "pcap.h"
 
 void printHost(struct hostent host) {
     struct in_addr **address;

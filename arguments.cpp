@@ -105,7 +105,6 @@ long strToLong(const char* str) {
 
 void process_host_name(options **options, const char *hostname) {
     struct hostent *host = gethostbyname(hostname); // pokud je na vstupu hostname, tak dojde k lookupu
-
     // pokud nebylo možné provést lookup
     if (!host) {
         herror("gethostbyname() failed");

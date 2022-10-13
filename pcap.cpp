@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Soubor: packet.cpp
+ * Soubor: pcap.cpp
  *
  * Popis: Zachytávání a analýza zachycené síťové komunikace
  *
@@ -8,12 +8,28 @@
  * Datum: 7.10.2022
  *****************************************************************************/
 
-#include "packet.h"
+#include "pcap.h"
 
 std::map<tuple<string, string, int, int, int>, struct NetFlowRCD> m;
-struct timeval SysUptime = {0, 0};
+struct timeval SysUptime, LastUptime = {0, 0};
 options option = {};
 uint32_t FlowCounter = 0;
+
+uint32_t getUptimeDiff(struct timeval ts) {
+    uint32_t sec =  ts.tv_sec - SysUptime.tv_sec;
+    uint32_t usec = ts.tv_usec - SysUptime.tv_usec;
+    return 1000 * sec + (usec + 500) / 1000;
+}
+
+void export_flow() {
+    while(!m.empty()) {
+        struct NetFlowHDR netFlowHdr = {NETFLOW_VERSION, 1, getUptimeDiff(LastUptime), static_cast<uint32_t>(LastUptime.tv_sec), static_cast<uint32_t>(LastUptime.tv_usec), ++FlowCounter, UNDEFINED, UNDEFINED, UNDEFINED};
+        struct NetFlowRCD netFlowRcd = m.begin()->second;
+        struct NetFlowPacket netFlowPacket = {netFlowHdr, netFlowRcd};
+        exporter(netFlowPacket, option);
+        m.erase(m.begin());
+    }
+}
 
 void pcapInit(options options) {
     option = options;
@@ -34,6 +50,8 @@ void pcapInit(options options) {
 //        err(EXIT_FAILURE, "pcap_loop() failed");
 
     pcap_close(handle);
+
+    export_flow();
 
     printf("Netflow finished\n");
 }
@@ -68,15 +86,9 @@ uint16_t p_port_udp(const struct udphdr *udp_header, int type) {
         err(EXIT_FAILURE, "Undefined error in p_ip()");
 }
 
-uint32_t getUptimeDiff(pcap_pkthdr h) {
-    uint32_t sec =  h.ts.tv_sec - SysUptime.tv_sec;
-    uint32_t usec = h.ts.tv_usec - SysUptime.tv_usec;
-    return 1000 * sec + (usec + 500) / 1000;
-}
-
-uint32_t getPcktTimeDiff(const struct pcap_pkthdr h) {
-    uint32_t tmp_sec  = h.ts.tv_sec - SysUptime.tv_sec;
-    uint32_t tmp_usec = h.ts.tv_usec - SysUptime.tv_usec;
+uint32_t getPcktTimeDiff(struct timeval ts) {
+    uint32_t tmp_sec  = ts.tv_sec  - SysUptime.tv_sec;
+    uint32_t tmp_usec = ts.tv_usec - SysUptime.tv_usec;
     return (tmp_sec * 1000 + (tmp_usec + 500) / 1000) / 1000;
 }
 
@@ -91,7 +103,7 @@ void checkPcktTimes(const struct pcap_pkthdr h){
     auto tmp_map = m;
     for (auto &iterator : m) {
 
-        auto timeDiff = getPcktTimeDiff(h);
+        auto timeDiff = getPcktTimeDiff(h.ts);
         // active timer export
         if (timeDiff - iterator.second.First / 1000 >= option.ac_timer) {
             //TODO export
@@ -117,6 +129,8 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
         SysUptime.tv_usec = h->ts.tv_usec;
     }
 
+    LastUptime = h->ts;
+
     if (m.size() == option.count) {
         auto iter = m.begin();
         m.erase(iter);
@@ -134,17 +148,17 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
          ********/
         if(ip_header->ip_p == IPPROTO_ICMP) {
             auto *icmp_header = (struct icmphdr *) (bytes + ip_len + ETH_HLEN);
-            auto search = m.find(make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), 0, ICMP(icmp_header->type, icmp_header->code), ntohs(ip_header->ip_p)));
+            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), 0, ICMP(icmp_header->type, icmp_header->code), ntohs(ip_header->ip_p));
+            auto search = m.find(key);
             if (!(search != m.end())) {
                 std::cout << "Not found\n";
-                //struct NetFlowHDR netFlowHdr = {NETFLOW_VERSION, 1, getBootUptime(*h), static_cast<uint32_t>(h->ts.tv_sec), static_cast<uint32_t>(h->ts.tv_usec), ++FlowCounter, UNDEFINED, UNDEFINED, UNDEFINED};
-                struct NetFlowRCD netFlowRcd = {ip_header->ip_src,ip_header->ip_dst, UNDEFINED, UNDEFINED,UNDEFINED, 1, ntohs(ip_header->ip_len),
-                                                getUptimeDiff(*h), getUptimeDiff(*h), UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
-                m.insert(make_pair(make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), 0, ICMP(icmp_header->type, icmp_header->code), ntohs(ip_header->ip_p)),netFlowRcd));
+                struct NetFlowRCD netFlowRcd = {ip_header->ip_src,ip_header->ip_dst, UNDEFINED, UNDEFINED,UNDEFINED, 1, ip_header->ip_len,
+                                                getPcktTimeDiff(h->ts), getPcktTimeDiff(h->ts), UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+                m.insert(make_pair(key,netFlowRcd));
             } else {
                 (search->second.dPkts)++;
-                search->second.dOctets += ntohs(ip_header->ip_len);
-                search->second.Last = getUptimeDiff(*h);
+                search->second.dOctets += ip_header->ip_len;
+                search->second.Last = getPcktTimeDiff(h->ts);
                 std::cout << "Founded" << '\n';
             }
 

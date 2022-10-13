@@ -26,6 +26,7 @@
 #include <chrono>
 #include "tcp_udp_hdrs.h"
 #include "arguments.h"
+#include "udp-client.h"
 
 using namespace std;
 
@@ -73,11 +74,18 @@ struct NetFlowRCD {
 };
 
 
+struct NetFlowPacket{
+    NetFlowHDR netFlowHdr;
+    NetFlowRCD netFlowRcd;
+};
+
 void pcapInit(options);
 
-uint32_t getUptimeDiff(pcap_pkthdr);
+uint32_t getUptimeDiff(struct timeval);
 
-uint32_t getSysUptime(pcap_pkthdr);
+uint32_t getPcktTimeDiff(struct timeval);
+
+void checkPcktTimes(const struct pcap_pkthdr);
 
 void handler(u_char *, const struct pcap_pkthdr *, const u_char *);
 

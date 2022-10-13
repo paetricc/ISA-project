@@ -1,9 +1,9 @@
 #include "udp-client.h"
 
-int exporter(struct NetFlowPacket netFlowPacket, options options) {
+int exporter(struct NetFlowPacket netFlowPacket, options options, unsigned char count) {
     int sock;                        // socket descriptor
     int msg_size, i;
-    struct sockaddr_in server; // address structures of the server and the client
+    struct sockaddr_in server{}; // address structures of the server and the client
     char buffer[BUFFER];
 
     memset(&server, 0, sizeof(server)); // erase the server structure
@@ -24,7 +24,9 @@ int exporter(struct NetFlowPacket netFlowPacket, options options) {
     if (connect(sock, (struct sockaddr *) &server, sizeof(server)) == -1)
         err(1, "connect() failed");
 
-    msg_size = sizeof(netFlowPacket);
+    //msg_size = sizeof(NetFlowHDR) + count * sizeof(NetFlowRCD);
+    msg_size = sizeof(NetFlowHDR) + count * sizeof(NetFlowRCD);
+
     memcpy(buffer, &netFlowPacket, msg_size);
 
     //send data to the server

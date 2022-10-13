@@ -10,10 +10,12 @@
 
 #include "pcap.h"
 
-std::map<tuple<string, string, int, int, int>, struct NetFlowRCD> m;
+std::map<tuple<string, string, int, int, int, int>, struct NetFlowRCD> m;
 struct timeval SysUptime, LastUptime = {0, 0};
 options option = {};
 uint32_t FlowCounter = 0;
+
+int counter = 0;
 
 uint32_t getUptimeDiff(struct timeval ts) {
     uint32_t sec =  ts.tv_sec - SysUptime.tv_sec;
@@ -21,19 +23,58 @@ uint32_t getUptimeDiff(struct timeval ts) {
     return 1000 * sec + (usec + 500) / 1000;
 }
 
-void export_flow() {
+struct timeval getSysUptime() {
+    const auto time = std::chrono::system_clock::now().time_since_epoch();
+    const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(time);
+    return {microseconds.count() / 1000000, (microseconds.count() % 1000000) * 1000};
+}
+
+void export_rest_flows() {
+    struct NetFlowPacket netFlowPacket{};
+    struct NetFlowHDR netFlowHdr{};
+    struct NetFlowRCD netFlowRcd{};
+    struct timeval uptime{};
+
     while(!m.empty()) {
-        struct NetFlowHDR netFlowHdr = {NETFLOW_VERSION, 1, getUptimeDiff(LastUptime), static_cast<uint32_t>(LastUptime.tv_sec), static_cast<uint32_t>(LastUptime.tv_usec), ++FlowCounter, UNDEFINED, UNDEFINED, UNDEFINED};
-        struct NetFlowRCD netFlowRcd = m.begin()->second;
-        struct NetFlowPacket netFlowPacket = {netFlowHdr, netFlowRcd};
-        exporter(netFlowPacket, option);
-        m.erase(m.begin());
+        unsigned char count = 0;
+        uptime = getSysUptime();
+        netFlowHdr = {htons(static_cast<uint16_t>(NETFLOW_VERSION)), htons(static_cast<uint16_t>(1)), htonl(getUptimeDiff(LastUptime)), htonl(static_cast<uint32_t>(uptime.tv_sec)), htonl(static_cast<uint32_t>(uptime.tv_usec)), htonl(FlowCounter++), UNDEFINED, UNDEFINED, UNDEFINED};
+        for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !m.empty(); count++) {
+            netFlowRcd = m.begin()->second;
+            netFlowPacket.netFlowHdr = netFlowHdr;
+            netFlowPacket.netFlowRcd[count] = netFlowRcd;
+            m.erase(m.begin());
+        }
+        netFlowPacket.netFlowHdr.count = htons(count);
+        exporter(netFlowPacket, option, count);
+    }
+}
+
+void export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue) {
+    struct NetFlowPacket netFlowPacket{};
+    struct NetFlowHDR netFlowHdr{};
+    struct NetFlowRCD netFlowRcd{};
+    struct timeval uptime{};
+
+    while(!queue.empty()) {
+        unsigned char count = 0;
+        uptime = getSysUptime();
+        netFlowHdr = {htons(static_cast<uint16_t>(NETFLOW_VERSION)), htons(static_cast<uint16_t>(1)), htonl(getUptimeDiff(LastUptime)), htonl(static_cast<uint32_t>(uptime.tv_sec)), htonl(static_cast<uint32_t>(uptime.tv_usec)), htonl(FlowCounter++), UNDEFINED, UNDEFINED, UNDEFINED};
+        for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !queue.empty(); count++) {
+            netFlowRcd = queue.begin()->second;
+            netFlowPacket.netFlowHdr = netFlowHdr;
+            netFlowPacket.netFlowRcd[count] = netFlowRcd;
+            m.erase(queue.begin()->first);
+            queue.erase(queue.begin());
+        }
+        netFlowPacket.netFlowHdr.count = htons(count);
+        exporter(netFlowPacket, option, count);
     }
 }
 
 void pcapInit(options options) {
     option = options;
-    pcap_t *handle = nullptr;
+    pcap_t *handle;
     char errbuff[PCAP_ERRBUF_SIZE];
 
     handle = pcap_open_offline(options.file, errbuff);
@@ -51,7 +92,7 @@ void pcapInit(options options) {
 
     pcap_close(handle);
 
-    export_flow();
+    export_rest_flows();
 
     printf("Netflow finished\n");
 }
@@ -100,27 +141,33 @@ void print_map() {
 }
 
 void checkPcktTimes(const struct pcap_pkthdr h){
-    auto tmp_map = m;
+    vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
+
     for (auto &iterator : m) {
 
         auto timeDiff = getPcktTimeDiff(h.ts);
         // active timer export
         if (timeDiff - iterator.second.First / 1000 >= option.ac_timer) {
             //TODO export
-            tmp_map.erase(iterator.first);
+            queue.emplace_back(iterator);
+            cout << "active: " << timeDiff - iterator.second.First / 1000 << get<0>(iterator.first) << "\n";
             cout << "export active\n";
         }
         //inactive timer export
         if (timeDiff - iterator.second.Last / 1000 >= option.in_timer) {
             //TODO export
-            tmp_map.erase(iterator.first);
+            queue.emplace_back(iterator);
+            cout << "inactive: " << timeDiff - iterator.second.Last / 1000 << get<0>(iterator.first) << "\n";
             cout << "export inactive\n";
         }
     }
-    m = tmp_map;
+
+    export_queue_flows(queue);
 }
 
 void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
+
+    counter++;
 
     auto *eth_header = (struct ether_header *) bytes;
 
@@ -137,7 +184,6 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
     }
 
     checkPcktTimes(*h);
-    cout << m.size() << '\n';
 
     if(ntohs(eth_header->ether_type) == ETHERTYPE_IP) {
         auto *ip_header = (struct ip *) (bytes + ETH_HLEN);
@@ -148,20 +194,21 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
          ********/
         if(ip_header->ip_p == IPPROTO_ICMP) {
             auto *icmp_header = (struct icmphdr *) (bytes + ip_len + ETH_HLEN);
-            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), 0, ICMP(icmp_header->type, icmp_header->code), ntohs(ip_header->ip_p));
+            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), 0, ICMP(icmp_header->type, icmp_header->code), ip_header->ip_p, UNDEFINED);
             auto search = m.find(key);
             if (!(search != m.end())) {
-                std::cout << "Not found\n";
-                struct NetFlowRCD netFlowRcd = {ip_header->ip_src,ip_header->ip_dst, UNDEFINED, UNDEFINED,UNDEFINED, 1, ip_header->ip_len,
-                                                getPcktTimeDiff(h->ts), getPcktTimeDiff(h->ts), UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+                struct NetFlowRCD netFlowRcd = {ip_header->ip_src,ip_header->ip_dst, UNDEFINED, UNDEFINED,UNDEFINED,htonl(1), htonl(ntohs(ip_header->ip_len)),
+                                                getPcktTimeDiff(h->ts), getPcktTimeDiff(h->ts), UNDEFINED, htons(static_cast<uint16_t>(ICMP(icmp_header->type, icmp_header->code))), UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
                 m.insert(make_pair(key,netFlowRcd));
             } else {
-                (search->second.dPkts)++;
-                search->second.dOctets += ip_header->ip_len;
-                search->second.Last = getPcktTimeDiff(h->ts);
-                std::cout << "Founded" << '\n';
-            }
+                auto dPkts = ntohl(search->second.dPkts);
+                search->second.dPkts = htonl(dPkts+1);
+                cout << "counter: " << counter << '\n';
+                auto dOctets = ntohl(search->second.dOctets);
+                search->second.dOctets = htonl(dOctets + ntohs(ip_header->ip_len));
 
+                search->second.Last = getPcktTimeDiff(h->ts);
+            }
         }
 
          /******

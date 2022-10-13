@@ -16,6 +16,6 @@
 
 #define BUFFER 1024                // buffer length
 
-int exporter(struct NetFlowPacket, options);
+int exporter(struct NetFlowPacket, options, unsigned char);
 
 #endif //ISA_PROJECT_UDP_CLIENT_H

@@ -24,6 +24,7 @@
 #include <tuple>
 #include <string>
 #include <chrono>
+#include <vector>
 #include "tcp_udp_hdrs.h"
 #include "arguments.h"
 #include "udp-client.h"
@@ -76,7 +77,7 @@ struct NetFlowRCD {
 
 struct NetFlowPacket{
     NetFlowHDR netFlowHdr;
-    NetFlowRCD netFlowRcd;
+    NetFlowRCD netFlowRcd[NETFLOW_MAX_EXPORTED_PACKETS];
 };
 
 void pcapInit(options);

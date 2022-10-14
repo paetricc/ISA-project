@@ -15,8 +15,6 @@ struct timeval SysUptime, LastUptime = {0, 0};
 options option = {};
 uint32_t FlowCounter = 0;
 
-int counter = 0;
-
 uint32_t getUptimeDiff(struct timeval ts) {
     uint32_t sec =  ts.tv_sec - SysUptime.tv_sec;
     uint32_t usec = ts.tv_usec - SysUptime.tv_usec;
@@ -46,7 +44,7 @@ void export_rest_flows() {
             m.erase(m.begin());
         }
         netFlowPacket.netFlowHdr.count = htons(count);
-        exporter(netFlowPacket, option, count);
+        //exporter(netFlowPacket, option, count);
     }
 }
 
@@ -68,7 +66,7 @@ void export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, N
             queue.erase(queue.begin());
         }
         netFlowPacket.netFlowHdr.count = htons(count);
-        exporter(netFlowPacket, option, count);
+        //exporter(netFlowPacket, option, count);
     }
 }
 
@@ -150,14 +148,14 @@ void checkPcktTimes(const struct pcap_pkthdr h){
         if (timeDiff - iterator.second.First / 1000 >= option.ac_timer) {
             //TODO export
             queue.emplace_back(iterator);
-            cout << "active: " << timeDiff - iterator.second.First / 1000 << get<0>(iterator.first) << "\n";
+            cout << "active: " << timeDiff - iterator.second.First / 1000 << ":::" << get<0>(iterator.first) << "\n";
             cout << "export active\n";
         }
         //inactive timer export
-        if (timeDiff - iterator.second.Last / 1000 >= option.in_timer) {
+        if (timeDiff - ntohl(iterator.second.Last) / 1000 >= option.in_timer) {
             //TODO export
             queue.emplace_back(iterator);
-            cout << "inactive: " << timeDiff - iterator.second.Last / 1000 << get<0>(iterator.first) << "\n";
+            cout << "inactive: " << timeDiff - iterator.second.Last / 1000 << ":::" << get<0>(iterator.first) << "\n";
             cout << "export inactive\n";
         }
     }
@@ -165,11 +163,12 @@ void checkPcktTimes(const struct pcap_pkthdr h){
     export_queue_flows(queue);
 }
 
+
+int count = 0;
 void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
-
-    counter++;
-
     auto *eth_header = (struct ether_header *) bytes;
+    count++;
+    cout << count << ".) packet - " << h->ts.tv_sec << " seconds and " << h->ts.tv_usec << " microseconds\n";
 
     if (SysUptime.tv_sec == 0 && SysUptime.tv_usec == 0) {
         SysUptime.tv_sec  = h->ts.tv_sec;
@@ -198,16 +197,15 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
             auto search = m.find(key);
             if (!(search != m.end())) {
                 struct NetFlowRCD netFlowRcd = {ip_header->ip_src,ip_header->ip_dst, UNDEFINED, UNDEFINED,UNDEFINED,htonl(1), htonl(ntohs(ip_header->ip_len)),
-                                                getPcktTimeDiff(h->ts), getPcktTimeDiff(h->ts), UNDEFINED, htons(static_cast<uint16_t>(ICMP(icmp_header->type, icmp_header->code))), UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+                                                htonl(getPcktTimeDiff(h->ts)), htonl(getPcktTimeDiff(h->ts)), UNDEFINED, htons(static_cast<uint16_t>(ICMP(icmp_header->type, icmp_header->code))), UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
                 m.insert(make_pair(key,netFlowRcd));
             } else {
                 auto dPkts = ntohl(search->second.dPkts);
                 search->second.dPkts = htonl(dPkts+1);
-                cout << "counter: " << counter << '\n';
                 auto dOctets = ntohl(search->second.dOctets);
                 search->second.dOctets = htonl(dOctets + ntohs(ip_header->ip_len));
 
-                search->second.Last = getPcktTimeDiff(h->ts);
+                search->second.Last = htonl(getPcktTimeDiff(h->ts));
             }
         }
 
@@ -225,6 +223,7 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
             auto *udp_header = (struct udphdr *) (bytes + ip_len + ETH_HLEN);
         }
     }
+
     print_map();
 }
 

@@ -98,7 +98,11 @@ void pcapInit(options options) {
 string p_ip(const struct ip *ip_header, int type) {
     /* pomocí inet_ntoa() vypíšeme adresy ze síťového prostředí (uložená v bajtech) na dekadickou tečkovou notaci */
     if (type == SOURCE)
+#ifdef __FAVOR_BSD
+        return inet_ntoa(ip_header->ip_source);
+#else
         return inet_ntoa(ip_header->ip_src);
+#endif
     else if (type == DESTINATION)
         return inet_ntoa(ip_header->ip_dst);
     else

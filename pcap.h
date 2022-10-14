@@ -29,13 +29,6 @@
 #include "udp-client.h"
 #include "tcp_udp_hdrs.h"
 
-
-#ifdef __FAVOR_BSD
-    #define BSD 1
-#else
-    #define BSD 0
-#endif
-
 using namespace std;
 
 #define UNDEFINED 0

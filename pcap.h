@@ -12,7 +12,12 @@
 #ifndef ISA_PROJECT_PACKET_H
 #define ISA_PROJECT_PACKET_H
 
-#define __FAVOR_BSD
+#ifdef __FAVOR_BSD
+    #include "tcp_udp_hdrs.h"
+#else
+    #include <netinet/tcp.h>
+    #include <netinet/udp.h>
+#endif
 
 #include <pcap.h>
 #include <pcap/pcap.h>
@@ -27,7 +32,6 @@
 #include <string>
 #include <chrono>
 #include <vector>
-//#include "tcp_udp_hdrs.h"
 #include "arguments.h"
 #include "udp-client.h"
 

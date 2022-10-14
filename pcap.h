@@ -12,12 +12,6 @@
 #ifndef ISA_PROJECT_PACKET_H
 #define ISA_PROJECT_PACKET_H
 
-#ifdef __FAVOR_BSD
-    #define BSD 1
-#else
-    #define BSD 0
-#endif
-
 #include "tcp_udp_hdrs.h"
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
@@ -36,6 +30,12 @@
 #include <vector>
 #include "arguments.h"
 #include "udp-client.h"
+
+#ifdef __FAVOR_BSD
+    #define BSD 1
+#else
+    #define BSD 0
+#endif
 
 using namespace std;
 

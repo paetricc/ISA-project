@@ -12,8 +12,6 @@
 #ifndef ISA_PROJECT_PACKET_H
 #define ISA_PROJECT_PACKET_H
 
-#define __FAVOR_BSD
-
 #include <pcap.h>
 #include <pcap/pcap.h>
 #include <netinet/if_ether.h>

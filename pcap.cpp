@@ -8,7 +8,6 @@
  * Datum: 7.10.2022
  *****************************************************************************/
 
-#define __FAVOR_BSD
 #include "pcap.h"
 
 std::map<tuple<string, string, int, int, int, int>, struct NetFlowRCD> m;

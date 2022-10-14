@@ -20,6 +20,7 @@
 #include <netinet/in.h>
 #include <iostream>
 #include <netinet/ip_icmp.h>
+#define __FAVOR_BSD 1
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <map>

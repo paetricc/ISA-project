@@ -12,9 +12,6 @@
 #ifndef ISA_PROJECT_PACKET_H
 #define ISA_PROJECT_PACKET_H
 
-#include "tcp_udp_hdrs.h"
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
 #include <pcap.h>
 #include <pcap/pcap.h>
 #include <netinet/if_ether.h>
@@ -30,6 +27,8 @@
 #include <vector>
 #include "arguments.h"
 #include "udp-client.h"
+#include "tcp_udp_hdrs.h"
+
 
 #ifdef __FAVOR_BSD
     #define BSD 1

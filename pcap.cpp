@@ -98,11 +98,7 @@ void pcapInit(options options) {
 string p_ip(const struct ip *ip_header, int type) {
     /* pomocí inet_ntoa() vypíšeme adresy ze síťového prostředí (uložená v bajtech) na dekadickou tečkovou notaci */
     if (type == SOURCE)
-#ifdef __FAVOR_BSD
-        return inet_ntoa(ip_header->ip_source);
-#else
         return inet_ntoa(ip_header->ip_src);
-#endif
     else if (type == DESTINATION)
         return inet_ntoa(ip_header->ip_dst);
     else
@@ -112,7 +108,11 @@ string p_ip(const struct ip *ip_header, int type) {
 uint16_t p_port_tcp(const struct tcphdr *tcp_header, int type) {
     /* Protože číslo portu je uloženo v tzv. "network byte order", tak ho převedeme na tzv. "host byte order" */
     if (type == SOURCE)
+#ifdef __FAVOR_BSD
+        return ntohs(tcp_header->source);
+#else
         return ntohs(tcp_header->th_sport);
+#endif
     else if (type == DESTINATION)
         return ntohs(tcp_header->th_dport);
     else

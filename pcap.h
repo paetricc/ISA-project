@@ -12,22 +12,26 @@
 #ifndef ISA_PROJECT_PACKET_H
 #define ISA_PROJECT_PACKET_H
 
-#include <pcap.h>
-#include <pcap/pcap.h>
-#include <netinet/if_ether.h>
-#include <netinet/ether.h>
-#include <netinet/ip.h>
-#include <netinet/in.h>
 #include <iostream>
-#include <netinet/ip_icmp.h>
-#define __FAVOR_BSD 1
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
 #include <map>
 #include <tuple>
 #include <string>
 #include <chrono>
 #include <vector>
+
+#include <netinet/in.h>
+#include <netinet/ether.h>
+#include <netinet/if_ether.h>
+#include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
+#define __FAVOR_BSD
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#undef __FAVOR_BSD
+
+#include <pcap.h>
+#include <pcap/pcap.h>
+
 #include "arguments.h"
 
 using namespace std;

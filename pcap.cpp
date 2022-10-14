@@ -166,6 +166,8 @@ void checkPcktTimes(const struct pcap_pkthdr h){
 
 int count = 0;
 void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
+    if (!BSD)
+        cout << "AHOJ ADAME\n";
     auto *eth_header = (struct ether_header *) bytes;
     count++;
     cout << count << ".) packet - " << h->ts.tv_sec << " seconds and " << h->ts.tv_usec << " microseconds\n";

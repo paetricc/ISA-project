@@ -13,12 +13,14 @@
 #define ISA_PROJECT_PACKET_H
 
 #ifdef __FAVOR_BSD
-    #include "tcp_udp_hdrs.h"
+    #define BSD 1
 #else
-    #include <netinet/tcp.h>
-    #include <netinet/udp.h>
+    #define BSD 0
 #endif
 
+#include "tcp_udp_hdrs.h"
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
 #include <pcap.h>
 #include <pcap/pcap.h>
 #include <netinet/if_ether.h>

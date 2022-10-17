@@ -2,7 +2,7 @@ CPP=g++
 CFLAGS=-std=c++14 -pedantic -Wall -Wextra
 EXECUTABLE=flow
 VARGS=--tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes
-OBJS=flow.o arguments.o pcap.o udp-client.o
+OBJS=flow.o arguments.o pcap.o exporter.o
 
 all: clean $(EXECUTABLE)
 
@@ -18,7 +18,7 @@ arguments.o: arguments.cpp
 pcap.o: pcap.cpp
 	$(CPP) $(CFLAGS) -c $^
 
-udp-client.o: udp-client.cpp
+exporter.o: exporter.cpp
 	$(CPP) $(CFLAGS) -c $^
 
 valgrind: $(EXECUTABLE)

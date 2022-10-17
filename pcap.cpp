@@ -187,11 +187,11 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
         ******/
         if(ip_header->ip_p == IPPROTO_UDP) {
             auto *udp_header = (struct udphdr *) (bytes + ip_len + ETH_HLEN);
-            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), udp_header->source, udp_header->dest, ip_header->ip_p, ip_header->ip_tos);
+            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), udp_header->uh_sport, udp_header->uh_dport, ip_header->ip_p, ip_header->ip_tos);
             auto search = m.find(key);
             if (search == m.end()) {
                 struct NetFlowRCD netFlowRcd = {ip_header->ip_src,ip_header->ip_dst, UNDEFINED, UNDEFINED,UNDEFINED,htonl(1), htonl(ntohs(ip_header->ip_len)),
-                                                htonl(getUptimeDiff(h->ts)), htonl(getUptimeDiff(h->ts)), udp_header->source, udp_header->dest, UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+                                                htonl(getUptimeDiff(h->ts)), htonl(getUptimeDiff(h->ts)), udp_header->uh_sport, udp_header->uh_dport, UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
                 key_queue.emplace_back(key);
                 m.insert(make_pair(key,netFlowRcd));
                 } else {
@@ -210,11 +210,11 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
          ******/
         if(ip_header->ip_p == IPPROTO_TCP) {
             auto *tcp_header = (struct tcphdr *) (bytes + ip_len + ETH_HLEN);
-            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), tcp_header->source, tcp_header->dest, ip_header->ip_p, ip_header->ip_tos);
+            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), tcp_header->th_sport, tcp_header->th_dport, ip_header->ip_p, ip_header->ip_tos);
             auto search = m.find(key);
             if (search == m.end()) {
                 struct NetFlowRCD netFlowRcd = {ip_header->ip_src,ip_header->ip_dst, UNDEFINED, UNDEFINED,UNDEFINED,htonl(1), htonl(ntohs(ip_header->ip_len)),
-                                                htonl(getUptimeDiff(h->ts)), htonl(getUptimeDiff(h->ts)), tcp_header->source, tcp_header->dest, UNDEFINED, tcp_header->th_flags, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+                                                htonl(getUptimeDiff(h->ts)), htonl(getUptimeDiff(h->ts)), tcp_header->th_sport, tcp_header->th_dport, UNDEFINED, tcp_header->th_flags, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
                 key_queue.emplace_back(key);
                 m.insert(make_pair(key,netFlowRcd));
             } else {
@@ -229,7 +229,7 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
                 auto flags = search->second.tcp_flags;
                 search->second.tcp_flags = flags | tcp_header->th_flags;
 
-                if (tcp_header->fin == 1 || tcp_header->rst == 1) {
+                if (tcp_header->th_flags == TH_FIN || tcp_header->th_flags == TH_RST) {
                     vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
                     queue.emplace_back(search->first, search->second);
                     export_queue_flows(queue);

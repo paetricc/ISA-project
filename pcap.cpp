@@ -119,10 +119,9 @@ void pcapInit(options options) {
 }
 
 //TODO prejmenovat
-void checkPcktTimes(struct pcap_pkthdr h){
+void checkPcktToExport(struct pcap_pkthdr h){
     vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
 
-    //TODO exportovat pri plnem listu
     if (m.size() == option.count) {
         auto iter = m.begin();
         queue.emplace_back(iter->first, iter->second);
@@ -230,7 +229,6 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
                 auto flags = search->second.tcp_flags;
                 search->second.tcp_flags = flags | tcp_header->th_flags;
 
-                //TODO FIN flag
                 if (tcp_header->fin == 1 || tcp_header->rst == 1) {
                     vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
                     queue.emplace_back(search->first, search->second);

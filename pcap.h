@@ -91,7 +91,7 @@ void pcapInit(options);
 
 uint32_t getUptimeDiff(struct timeval);
 
-void checkPcktTimes(struct pcap_pkthdr);
+void checkPcktsToExport(struct pcap_pkthdr);
 
 void handler(u_char *, const struct pcap_pkthdr *, const u_char *);
 

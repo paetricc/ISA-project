@@ -118,8 +118,7 @@ void pcapInit(options options) {
     printf("Netflow finished\n");
 }
 
-//TODO prejmenovat
-void checkPcktToExport(struct pcap_pkthdr h){
+void checkPcktsToExport(struct pcap_pkthdr h){
     vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
 
     if (m.size() == option.count) {

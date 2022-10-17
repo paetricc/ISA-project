@@ -8,7 +8,6 @@
  * Datum: 7.10.2022
  *****************************************************************************/
 
-#include <iostream>
 #include "arguments.h"
 
 void parse_args(int argc, char **argv, options *options) {
@@ -31,7 +30,7 @@ void parse_args(int argc, char **argv, options *options) {
             case 'f': // -f <file>
                 file = fopen(optarg, "r");
                 if(!file)
-                    err(EXIT_FAILURE, "fopen() failed");
+                    err(ENOENT, "fopen() failed");
 
                 if(fclose(file) == EOF)
                     err(EXIT_FAILURE, "fclose() failed\n");
@@ -61,7 +60,6 @@ void parse_args(int argc, char **argv, options *options) {
                     err(EXIT_FAILURE, "Number after -m expected\n");
                 break;
             case '?': // neznámý přepínač
-                help_print();
                 err(EXIT_FAILURE, "Bad type of arguments\n");
             default:
                 exit(EXIT_FAILURE);
@@ -111,21 +109,6 @@ void process_host_name(options **options, const char *hostname) {
         exit(EXIT_FAILURE);
     }
     (*options)->hostent = host;
-}
-
-void help_print() {
-    printf("NAME\n\t");
-    printf("NetFlow generator of data from captured network traffic\n\n");
-    printf("SYNOPSIS\n\t");
-    printf("./flow [-f <file>] [-c <netflow_collector>[:<port>]] [-a <active_timer>] [-i <inactive_timer>] [-m <count>]\n\n");
-    printf("DESCRIPTION\n\t");
-    printf("-f <file> parsed file name or STDIN,\n\n\t"
-           "-c <netflow_collector:port> IP address or hostname of the NetFlow collector. optionally also UDP port (127.0.0.1:2055, if not specified)\n\n\t"
-           "-a <active_timer> - interval in seconds after which active records are exported to the collector (60 if not specified)\n\n\t"
-           "-i <seconds> - interval in seconds after which inactive records are exported to the collector (10 if not specified)\n\n\t"
-           "-m <count> - flow-cache size. When the max size is reached, the oldest entry in the cache is exported to the collector (1024, if not specified)\n\n");
-    printf("AUTHOR\n\t");
-    printf("Written by Tomas Bartu.");
 }
 
 /************** Konec souboru arguments.cpp ***************/

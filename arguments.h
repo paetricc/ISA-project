@@ -13,6 +13,7 @@
 
 #include <cstdlib>
 #include <cctype>
+#include <iostream>
 #include <cstring>
 #include <getopt.h>
 #include <cstdio>
@@ -68,11 +69,6 @@ long strToLong(const char *);
  * Funkce pro převod host name na IP adresu. Pokud je v řetězci již korektně zadaná IP nedochazí k překladu.
  */
 void process_host_name(options **, const char *);
-
-/**
- * Funkce pro výpis nápovědy
- */
-void help_print();
 
 #endif
 

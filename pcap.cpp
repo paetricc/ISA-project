@@ -152,7 +152,7 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
 
     LastUptime = h->ts;
 
-    checkPcktTimes(*h);
+    checkPcktsToExport(*h);
 
     if(ntohs(eth_header->ether_type) == ETHERTYPE_IP) {
         auto *ip_header = (struct ip *) (bytes + ETH_HLEN);

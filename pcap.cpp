@@ -10,11 +10,23 @@
 
 #include "pcap.h"
 
+#include <algorithm>
+
 std::map<tuple<string, string, int, int, int, int>, struct NetFlowRCD> m;
 std::vector<tuple<string, string, int, int, int, int>> key_queue;
 struct timeval SysUptime, LastUptime = {0, 0};
 options option = {};
 uint32_t FlowCounter = 0;
+
+string p_ip(const struct ip *ip_header, int type) {
+    /* pomocí inet_ntoa() vypíšeme adresy ze síťového prostředí (uložená v bajtech) na dekadickou tečkovou notaci */
+    if (type == SOURCE)
+        return inet_ntoa(ip_header->ip_src);
+    else if (type == DESTINATION)
+        return inet_ntoa(ip_header->ip_dst);
+    else
+        err(EXIT_FAILURE, "Undefined error in p_ip()");
+}
 
 uint32_t getUptimeDiff(struct timeval ts) {
     uint32_t sec, usec;
@@ -41,6 +53,7 @@ void export_rest_flows() {
         for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !m.empty(); count++) {
             FlowCounter++;
             netFlowRcd = m.find(key_queue.front())->second;
+            cout << "dOctets: " << ntohl(netFlowRcd.dOctets) << " ipsrc: " << inet_ntoa(netFlowRcd.srdaddr) << " ipdst: " << inet_ntoa(netFlowRcd.dstaddr) <<  '\n';
             netFlowPacket.netFlowRcd[count] = netFlowRcd;
             m.erase(key_queue.front());
             key_queue.erase(key_queue.begin());
@@ -62,8 +75,15 @@ void export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, N
         for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !queue.empty(); count++) {
             FlowCounter++;
             netFlowRcd = queue.begin()->second;
+            cout << "dOctets: " << ntohl(netFlowRcd.dOctets) << " ipsrc: " << inet_ntoa(netFlowRcd.srdaddr) << " ipdst: " << inet_ntoa(netFlowRcd.dstaddr) <<  '\n';
             netFlowPacket.netFlowRcd[count] = netFlowRcd;
             m.erase(queue.begin()->first);
+
+            auto iter = std::find(key_queue.begin(), key_queue.end(), queue.begin()->first);
+            if (iter != key_queue.end())
+                key_queue.erase(iter);
+            else
+                err(EXIT_FAILURE, "Unexpected error in std::find()");
             queue.erase(queue.begin());
         }
         netFlowHdr = {htons(static_cast<uint16_t>(NETFLOW_VERSION)), htons(static_cast<uint16_t>(1)), htonl(getUptimeDiff(LastUptime)), htonl(static_cast<uint32_t>(LastUptime.tv_sec)), htonl(static_cast<uint32_t>(LastUptime.tv_usec * 1000)), htonl(FlowCounter++), UNDEFINED, UNDEFINED, UNDEFINED};
@@ -98,23 +118,6 @@ void pcapInit(options options) {
     printf("Netflow finished\n");
 }
 
-string p_ip(const struct ip *ip_header, int type) {
-    /* pomocí inet_ntoa() vypíšeme adresy ze síťového prostředí (uložená v bajtech) na dekadickou tečkovou notaci */
-    if (type == SOURCE)
-        return inet_ntoa(ip_header->ip_src);
-    else if (type == DESTINATION)
-        return inet_ntoa(ip_header->ip_dst);
-    else
-        err(EXIT_FAILURE, "Undefined error in p_ip()");
-}
-
-void print_map() {
-    for (const auto & it : m) {
-        cout << "->" << get<0>(it.first) << " <- \n";
-    }
-    std::cout << '\n';
-}
-
 //TODO prejmenovat
 void checkPcktTimes(struct pcap_pkthdr h){
     vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
@@ -123,7 +126,6 @@ void checkPcktTimes(struct pcap_pkthdr h){
     if (m.size() == option.count) {
         auto iter = m.begin();
         queue.emplace_back(iter->first, iter->second);
-        m.erase(iter);
     }
 
     for (auto &iterator : m) {
@@ -229,11 +231,16 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
                 search->second.tcp_flags = flags | tcp_header->th_flags;
 
                 //TODO FIN flag
+                if (tcp_header->fin == 1 || tcp_header->rst == 1) {
+                    vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
+                    queue.emplace_back(search->first, search->second);
+                    export_queue_flows(queue);
+                }
             }
         }
     }
 
-    print_map();
+    //print_map();
 }
 
 /************** Konec souboru packet.cpp ***************/

@@ -56,6 +56,7 @@ Odevzdaný projekt musí obsahovat:
 2. funkční Makefile pro překlad zdrojového souboru,
 3. dokumentaci (soubor manual.pdf), která bude obsahovat uvedení do problematiky, návrhu aplikace, popis implementace, základní informace o programu, návod na použití. V dokumentaci se očekává následující: titulní strana, obsah, logické strukturování textu, přehled nastudovaných informací z literatury, popis zajímavějších pasáží implementace, použití vytvořených programů a literatura.
 4. soubor flow.1 ve formátu a syntaxi manuálové stránky - viz https://liw.fi/manpages/
+
 Vypracovaný projekt uložený v archívu .tar a se jménem xlogin00.tar odevzdejte elektronicky přes IS. Soubor nekomprimujte.
 
 __Spuštění, testování:__

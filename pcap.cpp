@@ -11,40 +11,44 @@
 #include "pcap.h"
 
 std::map<tuple<string, string, int, int, int, int>, struct NetFlowRCD> m;
+std::vector<tuple<string, string, int, int, int, int>> key_queue;
 struct timeval SysUptime, LastUptime = {0, 0};
 options option = {};
 uint32_t FlowCounter = 0;
 
 uint32_t getUptimeDiff(struct timeval ts) {
-    uint32_t sec =  ts.tv_sec - SysUptime.tv_sec;
-    uint32_t usec = ts.tv_usec - SysUptime.tv_usec;
-    return 1000 * sec + (usec + 500) / 1000;
-}
+    uint32_t sec, usec;
 
-struct timeval getSysUptime() {
-    const auto time = std::chrono::system_clock::now().time_since_epoch();
-    const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(time);
-    return {microseconds.count() / 1000000, (microseconds.count() % 1000000) * 1000};
+    sec =  ts.tv_sec - SysUptime.tv_sec;
+    if (ts.tv_usec < SysUptime.tv_usec) {
+        usec = 1000000 - (SysUptime.tv_usec - ts.tv_usec);
+        sec--;
+    } else {
+        usec = ts.tv_usec - SysUptime.tv_usec;
+    }
+    return 1000 * sec + (usec + 500) / 1000;
 }
 
 void export_rest_flows() {
     struct NetFlowPacket netFlowPacket{};
     struct NetFlowHDR netFlowHdr{};
     struct NetFlowRCD netFlowRcd{};
-    struct timeval uptime{};
+
+    cout << "time: " << LastUptime.tv_sec << '\n';
 
     while(!m.empty()) {
         unsigned char count = 0;
-        uptime = getSysUptime();
-        netFlowHdr = {htons(static_cast<uint16_t>(NETFLOW_VERSION)), htons(static_cast<uint16_t>(1)), htonl(getUptimeDiff(LastUptime)), htonl(static_cast<uint32_t>(uptime.tv_sec)), htonl(static_cast<uint32_t>(uptime.tv_usec)), htonl(FlowCounter++), UNDEFINED, UNDEFINED, UNDEFINED};
         for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !m.empty(); count++) {
-            netFlowRcd = m.begin()->second;
-            netFlowPacket.netFlowHdr = netFlowHdr;
+            FlowCounter++;
+            netFlowRcd = m.find(key_queue.front())->second;
             netFlowPacket.netFlowRcd[count] = netFlowRcd;
-            m.erase(m.begin());
+            m.erase(key_queue.front());
+            key_queue.erase(key_queue.begin());
         }
+        netFlowHdr = {htons(static_cast<uint16_t>(NETFLOW_VERSION)), htons(static_cast<uint16_t>(1)), htonl(getUptimeDiff(LastUptime)), htonl(static_cast<uint32_t>(LastUptime.tv_sec)), htonl(static_cast<uint32_t>(LastUptime.tv_usec * 1000)), htonl(FlowCounter), UNDEFINED, UNDEFINED, UNDEFINED};
+        netFlowPacket.netFlowHdr = netFlowHdr;
         netFlowPacket.netFlowHdr.count = htons(count);
-        //exporter(netFlowPacket, option, count);
+        exporter(netFlowPacket, option, count);
     }
 }
 
@@ -52,21 +56,20 @@ void export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, N
     struct NetFlowPacket netFlowPacket{};
     struct NetFlowHDR netFlowHdr{};
     struct NetFlowRCD netFlowRcd{};
-    struct timeval uptime{};
 
     while(!queue.empty()) {
         unsigned char count = 0;
-        uptime = getSysUptime();
-        netFlowHdr = {htons(static_cast<uint16_t>(NETFLOW_VERSION)), htons(static_cast<uint16_t>(1)), htonl(getUptimeDiff(LastUptime)), htonl(static_cast<uint32_t>(uptime.tv_sec)), htonl(static_cast<uint32_t>(uptime.tv_usec)), htonl(FlowCounter++), UNDEFINED, UNDEFINED, UNDEFINED};
         for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !queue.empty(); count++) {
+            FlowCounter++;
             netFlowRcd = queue.begin()->second;
-            netFlowPacket.netFlowHdr = netFlowHdr;
             netFlowPacket.netFlowRcd[count] = netFlowRcd;
             m.erase(queue.begin()->first);
             queue.erase(queue.begin());
         }
+        netFlowHdr = {htons(static_cast<uint16_t>(NETFLOW_VERSION)), htons(static_cast<uint16_t>(1)), htonl(getUptimeDiff(LastUptime)), htonl(static_cast<uint32_t>(LastUptime.tv_sec)), htonl(static_cast<uint32_t>(LastUptime.tv_usec * 1000)), htonl(FlowCounter++), UNDEFINED, UNDEFINED, UNDEFINED};
+        netFlowPacket.netFlowHdr = netFlowHdr;
         netFlowPacket.netFlowHdr.count = htons(count);
-        //exporter(netFlowPacket, option, count);
+        exporter(netFlowPacket, option, count);
     }
 }
 
@@ -105,32 +108,6 @@ string p_ip(const struct ip *ip_header, int type) {
         err(EXIT_FAILURE, "Undefined error in p_ip()");
 }
 
-uint16_t p_port_tcp(const struct tcphdr *tcp_header, int type) {
-    /* Protože číslo portu je uloženo v tzv. "network byte order", tak ho převedeme na tzv. "host byte order" */
-    if (type == SOURCE)
-        return ntohs(tcp_header->th_sport);
-    else if (type == DESTINATION)
-        return ntohs(tcp_header->th_dport);
-    else
-        err(EXIT_FAILURE, "Undefined error in p_ip()");
-}
-
-uint16_t p_port_udp(const struct udphdr *udp_header, int type) {
-    /* Protože číslo portu je uloženo v tzv. "network byte order", tak ho převedeme na tzv. "host byte order" */
-    if (type == SOURCE)
-        return ntohs(udp_header->uh_sport);
-    else if (type == DESTINATION)
-        return ntohs(udp_header->uh_dport);
-    else
-        err(EXIT_FAILURE, "Undefined error in p_ip()");
-}
-
-uint32_t getPcktTimeDiff(struct timeval ts) {
-    uint32_t tmp_sec  = ts.tv_sec  - SysUptime.tv_sec;
-    uint32_t tmp_usec = ts.tv_usec - SysUptime.tv_usec;
-    return (tmp_sec * 1000 + (tmp_usec + 500) / 1000) / 1000;
-}
-
 void print_map() {
     for (const auto & it : m) {
         cout << "->" << get<0>(it.first) << " <- \n";
@@ -138,24 +115,26 @@ void print_map() {
     std::cout << '\n';
 }
 
-void checkPcktTimes(const struct pcap_pkthdr h){
+//TODO prejmenovat
+void checkPcktTimes(struct pcap_pkthdr h){
     vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
 
-    for (auto &iterator : m) {
+    //TODO exportovat pri plnem listu
+    if (m.size() == option.count) {
+        auto iter = m.begin();
+        queue.emplace_back(iter->first, iter->second);
+        m.erase(iter);
+    }
 
-        auto timeDiff = getPcktTimeDiff(h.ts);
+    for (auto &iterator : m) {
         // active timer export
-        if (timeDiff - iterator.second.First / 1000 >= option.ac_timer) {
-            //TODO export
+        if (getUptimeDiff(h.ts) - ntohl(iterator.second.Last) >= option.ac_timer * 1000) {
             queue.emplace_back(iterator);
-            cout << "active: " << timeDiff - iterator.second.First / 1000 << ":::" << get<0>(iterator.first) << "\n";
             cout << "export active\n";
         }
         //inactive timer export
-        if (timeDiff - ntohl(iterator.second.Last) / 1000 >= option.in_timer) {
-            //TODO export
+        if (getUptimeDiff(h.ts) - ntohl(iterator.second.First) >= option.in_timer * 1000) {
             queue.emplace_back(iterator);
-            cout << "inactive: " << timeDiff - iterator.second.Last / 1000 << ":::" << get<0>(iterator.first) << "\n";
             cout << "export inactive\n";
         }
     }
@@ -163,12 +142,8 @@ void checkPcktTimes(const struct pcap_pkthdr h){
     export_queue_flows(queue);
 }
 
-
-int count = 0;
 void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
     auto *eth_header = (struct ether_header *) bytes;
-    count++;
-    cout << count << ".) packet - " << h->ts.tv_sec << " seconds and " << h->ts.tv_usec << " microseconds\n";
 
     if (SysUptime.tv_sec == 0 && SysUptime.tv_usec == 0) {
         SysUptime.tv_sec  = h->ts.tv_sec;
@@ -176,11 +151,6 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
     }
 
     LastUptime = h->ts;
-
-    if (m.size() == option.count) {
-        auto iter = m.begin();
-        m.erase(iter);
-    }
 
     checkPcktTimes(*h);
 
@@ -193,19 +163,44 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
          ********/
         if(ip_header->ip_p == IPPROTO_ICMP) {
             auto *icmp_header = (struct icmphdr *) (bytes + ip_len + ETH_HLEN);
-            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), 0, ICMP(icmp_header->type, icmp_header->code), ip_header->ip_p, UNDEFINED);
+            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), UNDEFINED, ICMP(icmp_header->type, icmp_header->code), ip_header->ip_p, ip_header->ip_tos);
             auto search = m.find(key);
-            if (!(search != m.end())) {
+            if (search == m.end()) {
                 struct NetFlowRCD netFlowRcd = {ip_header->ip_src,ip_header->ip_dst, UNDEFINED, UNDEFINED,UNDEFINED,htonl(1), htonl(ntohs(ip_header->ip_len)),
-                                                htonl(getPcktTimeDiff(h->ts)), htonl(getPcktTimeDiff(h->ts)), UNDEFINED, htons(static_cast<uint16_t>(ICMP(icmp_header->type, icmp_header->code))), UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+                                                htonl(getUptimeDiff(h->ts)), htonl(getUptimeDiff(h->ts)), UNDEFINED, htons(static_cast<uint16_t>(ICMP(icmp_header->type, icmp_header->code))), UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+                key_queue.emplace_back(key);
                 m.insert(make_pair(key,netFlowRcd));
             } else {
                 auto dPkts = ntohl(search->second.dPkts);
                 search->second.dPkts = htonl(dPkts+1);
+
                 auto dOctets = ntohl(search->second.dOctets);
                 search->second.dOctets = htonl(dOctets + ntohs(ip_header->ip_len));
 
-                search->second.Last = htonl(getPcktTimeDiff(h->ts));
+                search->second.Last = htonl(getUptimeDiff(h->ts));
+            }
+        }
+
+        /******
+        * UDP *
+        ******/
+        if(ip_header->ip_p == IPPROTO_UDP) {
+            auto *udp_header = (struct udphdr *) (bytes + ip_len + ETH_HLEN);
+            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), udp_header->source, udp_header->dest, ip_header->ip_p, ip_header->ip_tos);
+            auto search = m.find(key);
+            if (search == m.end()) {
+                struct NetFlowRCD netFlowRcd = {ip_header->ip_src,ip_header->ip_dst, UNDEFINED, UNDEFINED,UNDEFINED,htonl(1), htonl(ntohs(ip_header->ip_len)),
+                                                htonl(getUptimeDiff(h->ts)), htonl(getUptimeDiff(h->ts)), udp_header->source, udp_header->dest, UNDEFINED, UNDEFINED, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+                key_queue.emplace_back(key);
+                m.insert(make_pair(key,netFlowRcd));
+                } else {
+                auto dPkts = ntohl(search->second.dPkts);
+                search->second.dPkts = htonl(dPkts+1);
+
+                auto dOctets = ntohl(search->second.dOctets);
+                search->second.dOctets = htonl(dOctets + ntohs(ip_header->ip_len));
+
+                search->second.Last = htonl(getUptimeDiff(h->ts));
             }
         }
 
@@ -214,13 +209,27 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
          ******/
         if(ip_header->ip_p == IPPROTO_TCP) {
             auto *tcp_header = (struct tcphdr *) (bytes + ip_len + ETH_HLEN);
-        }
+            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), tcp_header->source, tcp_header->dest, ip_header->ip_p, ip_header->ip_tos);
+            auto search = m.find(key);
+            if (search == m.end()) {
+                struct NetFlowRCD netFlowRcd = {ip_header->ip_src,ip_header->ip_dst, UNDEFINED, UNDEFINED,UNDEFINED,htonl(1), htonl(ntohs(ip_header->ip_len)),
+                                                htonl(getUptimeDiff(h->ts)), htonl(getUptimeDiff(h->ts)), tcp_header->source, tcp_header->dest, UNDEFINED, tcp_header->th_flags, ip_header->ip_p, ip_header->ip_tos, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+                key_queue.emplace_back(key);
+                m.insert(make_pair(key,netFlowRcd));
+            } else {
+                auto dPkts = ntohl(search->second.dPkts);
+                search->second.dPkts = htonl(dPkts+1);
 
-        /******
-         * UDP *
-         ******/
-        if(ip_header->ip_p == IPPROTO_UDP) {
-            auto *udp_header = (struct udphdr *) (bytes + ip_len + ETH_HLEN);
+                auto dOctets = ntohl(search->second.dOctets);
+                search->second.dOctets = htonl(dOctets + ntohs(ip_header->ip_len));
+
+                search->second.Last = htonl(getUptimeDiff(h->ts));
+
+                auto flags = search->second.tcp_flags;
+                search->second.tcp_flags = flags | tcp_header->th_flags;
+
+                //TODO FIN flag
+            }
         }
     }
 

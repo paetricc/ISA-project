@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <map>
+#include <list>
 #include <tuple>
 #include <string>
 #include <chrono>
@@ -33,6 +34,7 @@
 #include <pcap/pcap.h>
 
 #include "arguments.h"
+#include "udp-client.h"
 
 using namespace std;
 
@@ -89,9 +91,7 @@ void pcapInit(options);
 
 uint32_t getUptimeDiff(struct timeval);
 
-uint32_t getPcktTimeDiff(struct timeval);
-
-void checkPcktTimes(const struct pcap_pkthdr);
+void checkPcktTimes(struct pcap_pkthdr);
 
 void handler(u_char *, const struct pcap_pkthdr *, const u_char *);
 

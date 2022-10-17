@@ -4,7 +4,7 @@ int exporter(struct NetFlowPacket netFlowPacket, options options, unsigned char 
     int sock;                        // socket descriptor
     int msg_size, i;
     struct sockaddr_in server{}; // address structures of the server and the client
-    char buffer[BUFFER];
+    char buffer[2*BUFFER];
 
     memset(&server, 0, sizeof(server)); // erase the server structure
     server.sin_family = AF_INET;

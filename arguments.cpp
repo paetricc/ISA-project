@@ -25,37 +25,36 @@ void parse_args(int argc, char **argv, options *options) {
         err(EXIT_FAILURE, "Bad count of arguments");
 
     // kontrola zadaných argumentů programu a naplnění struktury Options vyselektovanými daty
-    while((c = getopt(argc, argv, "f:c:a:i:m:")) != -1) {
-        switch(c) {
+    while ((c = getopt(argc, argv, "f:c:a:i:m:")) != -1) {
+        switch (c) {
             case 'f': // -f <file>
                 file = fopen(optarg, "r");
-                if(!file)
+                if (!file)
                     err(ENOENT, "fopen() failed");
 
-                if(fclose(file) == EOF)
+                if (fclose(file) == EOF)
                     err(EXIT_FAILURE, "fclose() failed\n");
-
                 options->file= optarg;
                 break;
             case 'c': // -c <netflow_collector:port>
                 hostname = option_split(optarg, &options); // rozdělení zadaného parametru (x.x.x.x:port)
-                process_host_name(&options, hostname); // překlad host name na IP adresu
+                process_host_name(&options, hostname);                // překlad host name na IP adresu
                 break;
             case 'a': // -a <active_timer>
-                if(isNum(optarg))
-                    options->ac_timer = strToLong(optarg);
+                if (isNum(optarg))
+                    options->ac_timer = strToLong(optarg); // zjistíme z argumentu hodnotu aktivního časovače
                 else
                     err(EXIT_FAILURE, "Number after -a expected\n");
                 break;
             case 'i': // -i <seconds>
                 if (isNum(optarg))
-                    options->in_timer = strToLong(optarg);
+                    options->in_timer = strToLong(optarg); // zjistíme z argumentu hodnotu inaktivního časovače
                 else
                     err(EXIT_FAILURE, "Number after -i expected\n");
                 break;
             case 'm': // -m <count>
                 if (isNum(optarg))
-                    options->count = strToLong(optarg);
+                    options->count = strToLong(optarg); // zjistíme z argumentu hodnotu velikosti cache
                 else
                     err(EXIT_FAILURE, "Number after -m expected\n");
                 break;
@@ -69,7 +68,7 @@ void parse_args(int argc, char **argv, options *options) {
 
 bool isNum(const char *str) {
     int i = 0;
-    while(str[i] != '\0') { // dokud jsem nenarazil na konec řetězce
+    while(str[i] != '\0') {      // dokud jsem nenarazil na konec řetězce
         if(isdigit(str[i]) == 0) // pokud znak neodpovídá číslu, vrať false
             return false;
         i++;
@@ -83,13 +82,13 @@ char *option_split(char *collectorPort, options **options) {
 
     token = strtok(collectorPort, delimeter); // první řetězec před delimeterem -> hostname/IP
     char *hostname = token;
-    token = strtok(nullptr, delimeter); // řetězec nacházející se za prvním delimeterem -> port
+    token = strtok(nullptr, delimeter);       // řetězec nacházející se za prvním delimeterem -> port
 
     // kontrola zda je řetězcová reprezentace portu korektně zadaná
     if(token) {
         if(!isNum(token) || !BETWEEN(0, strToLong(token), 65535))
             err(EXIT_FAILURE, "Undefined port or port is not in correct range.\n");
-        (*options)->port = (int)strToLong(token); // postačí rozsah integeru
+        (*options)->port = strToLong(token);
     }
     return hostname;
 }

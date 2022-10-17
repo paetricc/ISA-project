@@ -228,7 +228,7 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
                 auto flags = search->second.tcp_flags;
                 search->second.tcp_flags = flags | tcp_header->th_flags;
 
-                if (tcp_header->th_flags == TH_FIN || tcp_header->th_flags == TH_RST) {
+                if (tcp_header->th_flags & TH_FIN || tcp_header->th_flags & TH_RST) {
                     vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
                     queue.emplace_back(search->first, search->second);
                     export_queue_flows(queue);

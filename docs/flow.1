@@ -1,0 +1,45 @@
+.TH FLOW 1
+.SH NAME
+flow \- neflow exporter from captured network traffic
+.SH SYNOPSIS
+.B ./flow
+[\fB\-f\fR \fIFILE\fR]
+[\fB\-c\fR \fInetflow_collector\fR[:\fIport\fR]]
+[\fB\-a\fR \fIactive_timer\fR]
+[\fB\-i\fR \fIinactive_timer\fR]
+[\fB\-m\fR \fIcount\fR]
+.SH DESCRIPTION
+.B flow
+is netflow exporter, which creates netflow records in version 5 from the captured network data in pcap format, which it sends to the collector
+.SH OPTIONS
+.TP
+.BR \-f " " \fIfile\fR
+Source path to pcap file.
+Default is standard input (\fISTDIN)
+.TP
+.BR \-c " " \fInetflow_collector\fR
+IP address or hostname of the NetFlow collector and optionally port number.
+Default value is 127.0.0.1 for IP address and 2055 for port.
+.TP
+.BR \-a " " \fIactive_timer\fR
+Interval in seconds after which active records are exported to the collector
+Default is 60 seconds.
+.TP
+.BR \-i " " \fIinactive_timer\fR
+Interval in seconds after which inactive records are exported to the collector.
+Default is 10 seconds.
+.TP
+.BR \-m " " \fIcount\fR
+Define size of cache in bytes. When the max size is reached, the oldest entry in the cache is exported to the collector
+Default size is 1024 bytes.
+.SH EXIT VALUES
+\fB 0 \fR Success
+\fB 1 \fR Undefined error occurred
+\fB 2 \fR File not found
+.SH EXAMPLES
+\fR ./flow -f input.pcap -c 192.168.0.1:2055
+\fR ./flow -c localhost -i 5 -a 120
+.SH SEE ALSO
+nfdump(1), nfcapd(1), pcap(3pcap), https://en.wikipedia.org/wiki/NetFlow, http://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html#wp1003394
+.SH AUTHOR
+Written by Tomas Bartu, xbartu11@stud.fit.vutbr.cz

@@ -10,11 +10,10 @@
 
 #include "pcap.h"
 
-#include <algorithm>
-
 std::map<tuple<string, string, int, int, int, int>, struct NetFlowRCD> m;
 std::vector<tuple<string, string, int, int, int, int>> key_queue;
 struct timeval SysUptime, LastUptime = {0, 0};
+//TODO remove (nahradit za user)
 options option = {};
 uint32_t FlowCounter = 0;
 
@@ -46,14 +45,11 @@ void export_rest_flows() {
     struct NetFlowHDR netFlowHdr{};
     struct NetFlowRCD netFlowRcd{};
 
-    cout << "time: " << LastUptime.tv_sec << '\n';
-
     while(!m.empty()) {
         unsigned char count = 0;
         for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !m.empty(); count++) {
             FlowCounter++;
             netFlowRcd = m.find(key_queue.front())->second;
-            cout << "dOctets: " << ntohl(netFlowRcd.dOctets) << " ipsrc: " << inet_ntoa(netFlowRcd.srdaddr) << " ipdst: " << inet_ntoa(netFlowRcd.dstaddr) <<  '\n';
             netFlowPacket.netFlowRcd[count] = netFlowRcd;
             m.erase(key_queue.front());
             key_queue.erase(key_queue.begin());
@@ -75,7 +71,6 @@ void export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, N
         for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !queue.empty(); count++) {
             FlowCounter++;
             netFlowRcd = queue.begin()->second;
-            cout << "dOctets: " << ntohl(netFlowRcd.dOctets) << " ipsrc: " << inet_ntoa(netFlowRcd.srdaddr) << " ipdst: " << inet_ntoa(netFlowRcd.dstaddr) <<  '\n';
             netFlowPacket.netFlowRcd[count] = netFlowRcd;
             m.erase(queue.begin()->first);
 
@@ -236,8 +231,6 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
             }
         }
     }
-
-    //print_map();
 }
 
 /************** Konec souboru packet.cpp ***************/

@@ -1,24 +1,23 @@
 /*****************************************************************************
  * Soubor: packet.h
  *
- * Popis: Hlavičkový soubor pro zachytávání a analýza zachycené síťové
+ * Popis: Hlavičkový soubor pro zachytávání a analýzu zachycené síťové
  * komunikace
  *
  * Autor: Tomáš Bártů, xbartu11
  *
- * Datum: 7.10.2022
+ * Datum: 18.10.2022
  *****************************************************************************/
 
 #ifndef ISA_PROJECT_PACKET_H
 #define ISA_PROJECT_PACKET_H
 
-#include <iostream>
 #include <map>
 #include <list>
 #include <tuple>
 #include <string>
-#include <chrono>
 #include <vector>
+#include <algorithm>
 
 #include <netinet/in.h>
 #include <netinet/ether.h>
@@ -93,9 +92,7 @@ uint32_t getUptimeDiff(struct timeval);
 
 void checkPcktsToExport(struct pcap_pkthdr);
 
-void handler(u_char *, const struct pcap_pkthdr *, const u_char *);
-
-unsigned long timeval_to_ms(struct timeval);
+void handler(__attribute__((unused)) u_char *, const struct pcap_pkthdr *, const u_char *);
 
 #endif //ISA_PROJECT_PACKET_H
 

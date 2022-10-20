@@ -5,46 +5,44 @@
  *
  * Autor: Tomáš Bártů, xbartu11
  *
- * Datum: 17.10.2022
+ * Datum: 20.10.2022
  *****************************************************************************/
 
 #include "exporter.h"
 
-int exporter(struct NetFlowPacket netFlowPacket, options options, unsigned char count) {
+void exporter(struct NetFlowPacket netFlowPacket, options options, unsigned char count) {
     int msg_size, i, sock;
     struct sockaddr_in server{};
     char buffer[BUFFER];
 
-    memset(&server, 0, sizeof(server));
+    memset(&server, 0, sizeof(server));  // vynuluj strukturu server
     server.sin_family = AF_INET;
 
+    // zkopíruj cílovou adresu ze struktury options do server.sin_addr
     memcpy(&server.sin_addr, options.hostent->h_addr, options.hostent->h_length);
 
-    server.sin_port = htons(options.port);
+    server.sin_port = htons(options.port); // cílový port ze struktury options
 
-    if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+    if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1) // vytvoř socket klienta
         perror("socket() failed ");
 
-    printf("* Server socket created\n");
-
-    printf("* Creating a connected UDP socket using connect()\n");
-
-    if (connect(sock, (struct sockaddr *) &server, sizeof(server)) == -1)
-        perror("connect() fail ");
-
+    /* Velikost výsledného paketu v bytech počítaná jako:
+     * velikost hlavičky + počet flows * velikost jedné flow */
     msg_size = sizeof(NetFlowHDR) + count * sizeof(NetFlowRCD);
 
-    memcpy(buffer, &netFlowPacket, msg_size);
+    memcpy(buffer, &netFlowPacket, msg_size); // výsledný netflow paket nakopíruj do bufferu
 
-    if ((i = send(sock, buffer, msg_size, 0)) == -1)
+    if (connect(sock, (struct sockaddr *) &server, sizeof(server)) == -1) // na socketu otevři spojení
+        perror("connect() fail ");
+
+    if ((i = send(sock, buffer, msg_size, 0)) == -1) // odešly msg_size bytů z bufferu na socket
         perror("send() failed ");
-    if (i != msg_size)
-        err(EXIT_FAILURE, "send(): buffer written partially ");
 
-    if(close(sock) == -1)
+    if (i != msg_size) // kontrola zda data byla řádně odeslaná
+        err(EXIT_FAILURE, "send() failed ");
+
+    if(close(sock) == -1) // uzavři socket
         perror("close() failed ");
-    printf("* Closing the client socket ...\n");
-    return EXIT_SUCCESS;
 }
 
 /************** Konec souboru exporter.h ***************/

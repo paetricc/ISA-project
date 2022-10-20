@@ -37,14 +37,16 @@
 
 using namespace std;
 
-#define UNDEFINED 0
-#define SOURCE 1
-#define DESTINATION 2
-#define NETFLOW_VERSION 5
-#define NETFLOW_MAX_EXPORTED_PACKETS 30
+#define UNDEFINED 0                     // pokud je položka nedefinovaná (například v hlavičce či záznamu netflowu)
+#define SOURCE 1                        // pokud se jedná o jakýkoliv zdroj
+#define DESTINATION 2                   // pokud se jedná o jakýkoliv cíl
+#define NETFLOW_VERSION 5               // verze exportovaného netflow
+#define NETFLOW_MAX_EXPORTED_PACKETS 30 // maximální velikost exportovaných záznamů v jednom netflow paketu
 
+// makro pro výpočet hodnoty ukládané do položky dstport při zpracování ICMP paketu
 #define ICMP(TYPE, CODE) (((TYPE) * 256) + (CODE))
 
+// struktura definující hlavičku netflow paketu verze 5
 struct NetFlowHDR {
     uint16_t version;
     uint16_t count;
@@ -57,6 +59,7 @@ struct NetFlowHDR {
     uint16_t sampling_interval;
 };
 
+// struktura definující záznam netflow paketu verze 5
 struct NetFlowRCD {
     in_addr  srdaddr;
     in_addr  dstaddr;
@@ -80,19 +83,66 @@ struct NetFlowRCD {
     uint16_t pad2;
 };
 
-
+// struktura definující netflow paket verze 5 při maximalním(třiceti) počtu záznamu v něm
 struct NetFlowPacket{
     NetFlowHDR netFlowHdr;
     NetFlowRCD netFlowRcd[NETFLOW_MAX_EXPORTED_PACKETS];
 };
 
+/**
+ *  Funkce pro otevření vstupního souboru či standardního vstupu. Následuje čtení jednotlivých paketů a po přečtení
+ *  všech záznamů následuje odeslání na kolektor zbytek již nevyexportovaných netflowů.
+ */
 void pcapInit(options);
 
+/**
+ * Callback funkce pcap_loop()
+ */
+void handler(u_char *, const struct pcap_pkthdr *, const u_char *);
+
+/**
+ * Funkce pro výpočet času od počátku funkce systému do času v argumentu funkce.
+ * Součet sekund převedených na milisekundy a mikrosekund převedených na milisekundy (při tomto převodu dochází k zaokrouhlování)
+ * @return Výsledné milisekundy
+ */
 uint32_t getUptimeDiff(struct timeval);
 
-void checkPcktsToExport(struct pcap_pkthdr);
+/**
+ * Funkce při níž dochází ke kontrole zda jednotlivé záznamy stále odpovídají jednotlivým časovačům
+ * nebo zda cache záznamů není plná.
+ *
+ * Aktivní časovač
+ *   getUptimeDiff(čas aktuálně zpracovávaného paketu) - čas v položce Last záznamu >= hodnota aktivního časovače
+ * Inaktivní časovač
+ *   getUptimeDiff(čas aktuálně zpracovávaného paketu) - čas v položce First záznamu >= hodnota inaktivního časovače
+ * Velikost cache
+ *   velikost cache = hodnota velikosti cache
+ * Pokud je nějaká z těchto podmínek dojde přidání záznamu do fronty a až se projdou všechny záznamy, tak dojde k
+ * poslání všech záznamu z fronty na export_queue_flows
+ */
+void checkPcktsToExport(struct pcap_pkthdr, struct options);
 
-void handler(__attribute__((unused)) u_char *, const struct pcap_pkthdr *, const u_char *);
+/**
+ * Funkce slouží k odstranění jednotlivých záznamů v cache, které jsme přijali z funkce checkPcktsToExport() a
+ * k následnému vytvoření netflow hlavičky. Těmito všemi hodnotami naplníme strukturu netflowPacket, kterou pak posíláme
+ * funkci export() k dalšímu zpracování. Maximálně však třicet záznamů najednou. Pokud nějakou z podmínek splňuje více
+ * záznamů, tak dochází k volání funkce export() vícekrát.
+ */
+void export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>>, struct options);
+
+/**
+ * Funkce podobná funkci export_rest_flows(). Přičemž zde, ale nemáme frontu záznamu k odstranění. V této funkce z cache
+ * vyjmeme všechny zbývající záznamy z cache a pošleme je funkci export() k dalšímu zpracování. Maximálně však třicet
+ * záznamů najednou. Pokud nějakou z podmínek splňuje více záznamů, tak dochází k volání funkce export() vícekrát.
+ */
+void export_rest_flows(struct options);
+
+/**
+ * Funkce vracející řetězcový zápis ip adresy získané z paketu. Slouží jako část klíče v mapě neboli cache.
+ * Řetězcový zápis je výhradně k debugovacím účelům.
+ * @return Řetězec ip adresy zapsaný jako xxx.xxx.xxx.xxx
+ */
+string p_ip(const struct ip *, int);
 
 #endif //ISA_PROJECT_PACKET_H
 

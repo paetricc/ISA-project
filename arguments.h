@@ -29,8 +29,7 @@ using namespace std;
 #define BETWEEN(first, number, last)  (((first) <= (number)) && ((number) <= (last)))
 
 /* Struktura uchovávající výběr z argumentů programu s přednastaveným defaultními hodnotami */
-typedef struct Options options;
-struct Options {
+struct options {
     const char*     file     {"-"};   // souborový popisovač
     struct hostent* hostent  {};      // struktura uchovavájící mimo jiné cílovou IP adresu
     unsigned long   port     {2055};  // číslo portu

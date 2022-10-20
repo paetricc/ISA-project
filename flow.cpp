@@ -5,16 +5,16 @@
  *
  * Autor: Tomáš Bártů, xbartu11
  *
- * Datum: 7.10.2022
+ * Datum: 20.10.2022
  *****************************************************************************/
 
 #include "flow.h"
 #include "pcap.h"
 
 int main(int argc, char **argv) {
-    options options;
-    parse_args(argc, argv, &options);
-    pcapInit(options);
+    options options;                  // struktura pro uchování argumentů programu
+    parse_args(argc, argv, &options); // oddělení jednotlivých částí argumentů
+    pcapInit(options);                // zpracování .pcap souboru
     return EXIT_SUCCESS;
 }
 

@@ -5,7 +5,7 @@
  *
  * Autor: Tomáš Bártů, xbartu11
  *
- * Datum: 17.10.2022
+ * Datum: 20.10.2022
  *****************************************************************************/
 
 #ifndef ISA_PROJECT_EXPORTER_H
@@ -31,7 +31,7 @@
  * Funkce pro odeslání vytvořeného NetFlow paketu pomocí UDP na kolektor
  * @return Zda došlo k úspěšnému odeslání dat na kolektor
  */
-int exporter(struct NetFlowPacket, options, unsigned char);
+void exporter(struct NetFlowPacket, options, unsigned char);
 
 #endif
 

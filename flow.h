@@ -5,7 +5,7 @@
  *
  * Autor: Tomáš Bártů, xbartu11
  *
- * Datum: 7.10.2022
+ * Datum: 20.10.2022
  *****************************************************************************/
 
 #ifndef ISA_PROJECT_FLOW_H
@@ -13,6 +13,12 @@
 
 #include "arguments.h"
 
-#endif //ISA_PROJECT_FLOW_H
+/**
+ * Hlavní funkce programu
+ * @return Stav úspěchu programu
+ */
+int main(int, char **);
+
+#endif
 
 /************** Konec souboru flow.h ***************/

@@ -19,8 +19,7 @@ void parse_args(int argc, char **argv, options *options) {
     process_host_name(&options, "localhost");
 
     /* pokud hodnota v argc je dělitelná dvěmi, tak nám to indikuje, že na vstupu programu je zadaný špatný počet
-     * argumentů. Respektice např.: './flow -p file.pcap abcd' -> argc = 4
-    */
+     * argumentů. Respektice např.: './flow -p file.pcap abcd' -> argc = 4 */
     if (argc % 2 == 0)
         err(EXIT_FAILURE, "Bad count of arguments");
 

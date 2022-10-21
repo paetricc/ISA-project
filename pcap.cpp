@@ -172,7 +172,7 @@ uint32_t getUptimeDiff(struct timeval ts) {
     } else { // nedošlo k tomuto scénáři, tak normalně odečteme časy
         usec = ts.tv_usec - SysUptime.tv_usec;
     }
-    return 1000 * sec + usec / 1000;
+    return 1000 * sec + (usec + 500) / 1000;
 }
 
 void checkPcktsToExport(struct pcap_pkthdr h, struct options options) {

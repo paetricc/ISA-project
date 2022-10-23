@@ -195,11 +195,13 @@ void checkPcktsToExport(struct pcap_pkthdr h, struct options options) {
     }
 
     for (auto &iterator: m) { // iterujeme mapou a hledám záznamy, kterým vypršel alespoň jeden z časovačů
-        // active timer export
+        // exportování aktivního časovače
+        // SysUptime aktuálního paketu - SysUptime poslední aktualizace paketu >= aktivní časovač (v milisekundách)
         if (getUptimeDiff(h.ts) - ntohl(iterator.second.Last) >= options.ac_timer * 1000) {
             queue.emplace_back(iterator); // a do fronty k odstranění vložíme záznam
         }
-        //inactive timer export
+        // exportování inaktivního časovače
+        // SysUptime aktuálního paketu - SysUptime prvního výskytu paketu >= inaktivní časovač (v milisekundách)
         if (getUptimeDiff(h.ts) - ntohl(iterator.second.First) >= options.in_timer * 1000) {
             queue.emplace_back(iterator); // a do fronty k odstranění vložíme záznam
         }

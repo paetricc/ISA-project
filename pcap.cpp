@@ -17,7 +17,7 @@ uint32_t FlowCounter = 0;                                            // čítač
 
 void pcapInit(options options) {
     pcap_t *handle;
-    struct bpf_program filter{};          /* pro uložení filtru a následnou aplikaci na pcap_setfilter */
+    struct bpf_program filter{};          // pro uložení filtru a následnou aplikaci na pcap_setfilter
     const char *filter_exp = "icmp or tcp or udp";
     char errbuff[PCAP_ERRBUF_SIZE];
 
@@ -43,12 +43,12 @@ void pcapInit(options options) {
 }
 
 void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
-    auto *options = (struct options *) user;          // z uživatelského vstupu si zjistíme strukturu se zadanými vstupními argumenty
+    auto *options    = (struct options *) user;       // z uživatelského vstupu si zjistíme strukturu se zadanými vstupními argumenty
     auto *eth_header = (struct ether_header *) bytes; // z přijatých bajtů si zjistíme ethernetovou hlavičku
 
     // z úplně prvního paketu zjistíme referenční čas
     if (SysUptime.tv_sec == 0 && SysUptime.tv_usec == 0) {
-        SysUptime.tv_sec = h->ts.tv_sec;
+        SysUptime.tv_sec  = h->ts.tv_sec;
         SysUptime.tv_usec = h->ts.tv_usec;
     }
 
@@ -68,10 +68,12 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
         ********/
         if (ip_header->ip_p == IPPROTO_ICMP) { // pokud je protokol, kterým jsou data v datové částí rámce zapouzdřena ICMP
             auto *icmp_header = (struct icmphdr *) (bytes + ip_len + ETH_HLEN); // z přijatých bajtů si zjistíme icmp hlavičku
+
             // vytvoříme klíč do mapy z klíčových hodnot netflow
             auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION),
-                                           UNDEFINED, ICMP(icmp_header->type, icmp_header->code),
-                                           ip_header->ip_p, ip_header->ip_tos);
+                                  UNDEFINED, ICMP(icmp_header->type, icmp_header->code),
+                                  ip_header->ip_p, ip_header->ip_tos);
+
             auto search = m.find(key); // klíč se pokusíme vyhledat v mapě
             if (search == m.end()) { // klíč jsme nenašli a tak vytvoříme nový záznam v mapě
                 struct NetFlowRCD netFlowRcd = {ip_header->ip_src, ip_header->ip_dst,
@@ -99,13 +101,14 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
         /******
         * UDP *
         ******/
-        if (ip_header->ip_p ==
-            IPPROTO_UDP) { // pokud je protokol, kterým jsou data v datové částí rámce zapouzdřena UDP
+        if (ip_header->ip_p == IPPROTO_UDP) { // pokud je protokol, kterým jsou data v datové částí rámce zapouzdřena UDP
             auto *udp_header = (struct udphdr *) (bytes + ip_len + ETH_HLEN); // z přijatých bajtů si zjistíme udp hlavičku
+
             // vytvoříme klíč do mapy z klíčových hodnot netflow
             auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION),
-                                           udp_header->uh_sport, udp_header->uh_dport,
-                                           ip_header->ip_p, ip_header->ip_tos);
+                                  udp_header->uh_sport, udp_header->uh_dport,
+                                  ip_header->ip_p, ip_header->ip_tos);
+
             auto search = m.find(key); // klíč se pokusíme vyhledat v mapě
             if (search == m.end()) { // klíč jsme nenašli a tak vytvoříme nový záznam v mapě
                 struct NetFlowRCD netFlowRcd = {ip_header->ip_src, ip_header->ip_dst,
@@ -134,9 +137,12 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
         ******/
         if (ip_header->ip_p == IPPROTO_TCP) { // pokud je protokol, kterým jsou data v datové částí rámce zapouzdřena TCP
             auto *tcp_header = (struct tcphdr *) (bytes + ip_len + ETH_HLEN); // z přijatých bajtů si zjistíme tcp hlavičku
+
             // vytvoříme klíč do mapy z klíčových hodnot netflow
-            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION), tcp_header->th_sport,
-                                  tcp_header->th_dport, ip_header->ip_p, ip_header->ip_tos);
+            auto key = make_tuple(p_ip(ip_header, SOURCE), p_ip(ip_header, DESTINATION),
+                                  tcp_header->th_sport, tcp_header->th_dport,
+                                  ip_header->ip_p, ip_header->ip_tos);
+
             auto search = m.find(key); // klíč se pokusíme vyhledat v mapě
             if (search == m.end()) { // klíč jsme nenašli a tak vytvoříme nový záznam v mapě
                 struct NetFlowRCD netFlowRcd = {ip_header->ip_src, ip_header->ip_dst,
@@ -188,7 +194,7 @@ uint32_t getUptimeDiff(struct timeval ts) {
 void checkPcktsToExport(struct pcap_pkthdr h, struct options options) {
     vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
 
-    if (m.size() == options.count) { // kontrola zde není plná cache
+    if (m.size() == options.count) {       // kontrola zde není plná cache
         auto iter = key_queue.begin();     // vezmeme si nejstarší záznam
         auto netflowRCD = m.find(iter[0]); // z něho získáme klíč
         queue.emplace_back(netflowRCD->first, netflowRCD->second); // a do fronty k odstranění vložíme záznam
@@ -213,8 +219,8 @@ void checkPcktsToExport(struct pcap_pkthdr h, struct options options) {
 void
 export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue, struct options options) {
     struct NetFlowPacket netFlowPacket{};
-    struct NetFlowHDR netFlowHdr{};
-    struct NetFlowRCD netFlowRcd{};
+    struct NetFlowHDR    netFlowHdr{};
+    struct NetFlowRCD    netFlowRcd{};
 
     while (!queue.empty()) { // dokud fronta není prázdná
         unsigned char count = 0; // čítač záznamů k odeslání (maximálně 30)
@@ -227,8 +233,8 @@ export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, NetFlo
             m.erase(queue.begin()->first); // záznam vymažeme z mapy
             // ve vektoru vyhledáme klíč záznamu
             auto iter = find(key_queue.begin(), key_queue.end(), queue.begin()->first);
-            if (iter != key_queue.end())
-                key_queue.erase(iter); // klíč vymažeme z vektoru
+            if (iter != key_queue.end()) // pokud jsme ho našli
+                key_queue.erase(iter);   // klíč vymažeme z vektoru
             else
                 err(EXIT_FAILURE, "Unexpected error in find()");
             queue.erase(queue.begin()); // z fronty odstraníme záznam
@@ -241,17 +247,19 @@ export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, NetFlo
         // zkompletujeme paket
         netFlowPacket.netFlowHdr = netFlowHdr;
         netFlowPacket.netFlowHdr.count = htons(count);
+
         exporter(netFlowPacket, options, count);
     }
 }
 
 void export_rest_flows(struct options options) {
     struct NetFlowPacket netFlowPacket{};
-    struct NetFlowHDR netFlowHdr{};
-    struct NetFlowRCD netFlowRcd{};
+    struct NetFlowHDR    netFlowHdr{};
+    struct NetFlowRCD    netFlowRcd{};
 
     while (!m.empty()) { // dokud je nějaký záznam v mapě
         unsigned char count = 0; // čítač záznamů k odeslání (maximálně 30)
+
         for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !m.empty(); count++) {
             FlowCounter++;
             netFlowRcd = m.find(key_queue.front())->second; // najdeme nejstarší záznam
@@ -267,6 +275,7 @@ void export_rest_flows(struct options options) {
         // zkompletujeme paket
         netFlowPacket.netFlowHdr = netFlowHdr;
         netFlowPacket.netFlowHdr.count = htons(count);
+
         exporter(netFlowPacket, options, count);
     }
 }

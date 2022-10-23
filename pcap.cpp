@@ -5,7 +5,7 @@
  *
  * Autor: Tomáš Bártů, xbartu11
  *
- * Datum: 17.10.2022
+ * Datum: 23.10.2022
  *****************************************************************************/
 
 #include "pcap.h"
@@ -17,6 +17,8 @@ uint32_t FlowCounter = 0;                                            // čítač
 
 void pcapInit(options options) {
     pcap_t *handle;
+    struct bpf_program filter{};          /* pro uložení filtru a následnou aplikaci na pcap_setfilter */
+    const char *filter_exp = "icmp or tcp or udp";
     char errbuff[PCAP_ERRBUF_SIZE];
 
     handle = pcap_open_offline(options.file, errbuff); // otevřeme soubor pro zpracování
@@ -24,7 +26,15 @@ void pcapInit(options options) {
     if (handle == nullptr) // soubor se nepodařilo otevřít
         err(EXIT_FAILURE, "Couldn't open file: %s", errbuff);
 
-    if (pcap_loop(handle, 0, handler, (u_char *) &options) == -1) // čteme jednotlivé pakety z .pcap souboru a zpracováváme je callbackem (funkcí handler())
+    /* ze zadaného výrazu vytvoříme filter */
+    if (pcap_compile(handle, &filter, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR)
+        err(EXIT_FAILURE, "pcap_compile() failed");
+
+    /* aplikujeme filtr na zařízení */
+    if (pcap_setfilter(handle, &filter) == PCAP_ERROR)
+        err(EXIT_FAILURE, "pcap_setfilter() failed");
+
+    if (pcap_loop(handle, 0, handler, (u_char *) &options) == PCAP_ERROR) // čteme jednotlivé pakety z .pcap souboru a zpracováváme je callbackem (funkcí handler())
         err(EXIT_FAILURE, "pcap_loop() failed");   // nastala chyba při čtení
 
     pcap_close(handle); // uvavřeme soubor

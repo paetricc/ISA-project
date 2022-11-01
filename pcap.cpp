@@ -32,13 +32,8 @@ void pcapInit(options options) {
     if (pcap_setfilter(handle, &filter) == PCAP_ERROR) // aplikujeme filtr
         err(EXIT_FAILURE, "pcap_setfilter() failed");
 
-    struct pcap_pkthdr header{};
-    const u_char *pkt_data;
-    while((pkt_data = pcap_next(handle, &header)))
-        handler(reinterpret_cast<u_char *>(&options), &header, pkt_data);
-
-//    if (pcap_loop(handle, 0, handler, (u_char *) &options) == PCAP_ERROR) // čteme jednotlivé pakety z .pcap souboru a zpracováváme je callbackem (funkcí handler())
-//        err(EXIT_FAILURE, "pcap_loop() failed");   // nastala chyba při čtení
+    if (pcap_loop(handle, 0, handler, (u_char *) &options) == PCAP_ERROR) // čteme jednotlivé pakety z .pcap souboru a zpracováváme je callbackem (funkcí handler())
+        err(EXIT_FAILURE, "pcap_loop() failed");   // nastala chyba při čtení
 
     pcap_close(handle); // uvavřeme soubor
 

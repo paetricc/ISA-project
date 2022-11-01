@@ -5,7 +5,7 @@
  *
  * Autor: Tomáš Bártů, xbartu11
  *
- * Datum: 23.10.2022
+ * Datum: 2.11.2022
  *****************************************************************************/
 
 #include "pcap.h"
@@ -26,16 +26,19 @@ void pcapInit(options options) {
     if (handle == nullptr) // soubor se nepodařilo otevřít
         err(EXIT_FAILURE, "Couldn't open file: %s", errbuff);
 
-    /* ze zadaného výrazu vytvoříme filter */
-    if (pcap_compile(handle, &filter, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR)
+    if (pcap_compile(handle, &filter, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR) // ze zadaného výrazu vytvoříme filter
         err(EXIT_FAILURE, "pcap_compile() failed");
 
-    /* aplikujeme filtr na zařízení */
-    if (pcap_setfilter(handle, &filter) == PCAP_ERROR)
+    if (pcap_setfilter(handle, &filter) == PCAP_ERROR) // aplikujeme filtr
         err(EXIT_FAILURE, "pcap_setfilter() failed");
 
-    if (pcap_loop(handle, 0, handler, (u_char *) &options) == PCAP_ERROR) // čteme jednotlivé pakety z .pcap souboru a zpracováváme je callbackem (funkcí handler())
-        err(EXIT_FAILURE, "pcap_loop() failed");   // nastala chyba při čtení
+    struct pcap_pkthdr header{};
+    const u_char *pkt_data;
+    while((pkt_data = pcap_next(handle, &header)))
+        handler(reinterpret_cast<u_char *>(&options), &header, pkt_data);
+
+//    if (pcap_loop(handle, 0, handler, (u_char *) &options) == PCAP_ERROR) // čteme jednotlivé pakety z .pcap souboru a zpracováváme je callbackem (funkcí handler())
+//        err(EXIT_FAILURE, "pcap_loop() failed");   // nastala chyba při čtení
 
     pcap_close(handle); // uvavřeme soubor
 
@@ -126,7 +129,7 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
                 search->second.dPkts = htonl(dPkts + 1);
 
                 auto dOctets = ntohl(search->second.dOctets); // počet bytů
-                search->second.dOctets = htonl(dOctets + ntohs(ip_header->ip_len));
+                search->second.dOctets = htonl(dOctets + (ntohs(ip_header->ip_len)));
 
                 search->second.Last = htonl(getUptimeDiff(h->ts)); // položka Last
             }
@@ -203,12 +206,12 @@ void checkPcktsToExport(struct pcap_pkthdr h, struct options options) {
     for (auto &iterator: m) { // iterujeme mapou a hledám záznamy, kterým vypršel alespoň jeden z časovačů
         // exportování aktivního časovače
         // SysUptime aktuálního paketu - SysUptime poslední aktualizace paketu >= aktivní časovač (v milisekundách)
-        if (getUptimeDiff(h.ts) - ntohl(iterator.second.Last) >= options.ac_timer * 1000) {
+        if (getUptimeDiff(h.ts) - ntohl(iterator.second.First) >= options.ac_timer * 1000) {
             queue.emplace_back(iterator); // a do fronty k odstranění vložíme záznam
         }
         // exportování inaktivního časovače
         // SysUptime aktuálního paketu - SysUptime prvního výskytu paketu >= inaktivní časovač (v milisekundách)
-        if (getUptimeDiff(h.ts) - ntohl(iterator.second.First) >= options.in_timer * 1000) {
+        if (getUptimeDiff(h.ts) - ntohl(iterator.second.Last) >= options.in_timer * 1000) {
             queue.emplace_back(iterator); // a do fronty k odstranění vložíme záznam
         }
     }
@@ -216,19 +219,17 @@ void checkPcktsToExport(struct pcap_pkthdr h, struct options options) {
     export_queue_flows(queue, options);
 }
 
-void
-export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue, struct options options) {
+void export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue, struct options options) {
     struct NetFlowPacket netFlowPacket{};
     struct NetFlowHDR    netFlowHdr{};
     struct NetFlowRCD    netFlowRcd{};
+    int count; // čítač záznamů k odeslání (maximálně 30)
 
     while (!queue.empty()) { // dokud fronta není prázdná
-        unsigned char count = 0; // čítač záznamů k odeslání (maximálně 30)
-        for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !queue.empty(); count++) {
-            FlowCounter++;
+        for (count = 0; count < NETFLOW_MAX_EXPORTED_PACKETS && !queue.empty(); ) {
             // vložíme záznam od paketu
             netFlowRcd = queue.begin()->second;
-            netFlowPacket.netFlowRcd[count] = netFlowRcd;
+            netFlowPacket.netFlowRcd[count++] = netFlowRcd;
 
             m.erase(queue.begin()->first); // záznam vymažeme z mapy
             // ve vektoru vyhledáme klíč záznamu
@@ -242,11 +243,13 @@ export_queue_flows(vector<pair<tuple<string, string, int, int, int, int>, NetFlo
         // vytvoříme netflow hlavičku
         netFlowHdr = {htons(static_cast<uint16_t>(NETFLOW_VERSION)), htons(static_cast<uint16_t>(1)),
                       htonl(getUptimeDiff(LastUptime)), htonl(static_cast<uint32_t>(LastUptime.tv_sec)),
-                      htonl(static_cast<uint32_t>(LastUptime.tv_usec * 1000)), htonl(FlowCounter++), UNDEFINED,
+                      htonl(static_cast<uint32_t>(LastUptime.tv_usec * 1000)), htonl(FlowCounter), UNDEFINED,
                       UNDEFINED, UNDEFINED};
         // zkompletujeme paket
         netFlowPacket.netFlowHdr = netFlowHdr;
         netFlowPacket.netFlowHdr.count = htons(count);
+
+        FlowCounter += count;
 
         exporter(netFlowPacket, options, count);
     }
@@ -256,12 +259,11 @@ void export_rest_flows(struct options options) {
     struct NetFlowPacket netFlowPacket{};
     struct NetFlowHDR    netFlowHdr{};
     struct NetFlowRCD    netFlowRcd{};
+    int count = 0; // čítač záznamů k odeslání (maximálně 30)
 
     while (!m.empty()) { // dokud je nějaký záznam v mapě
-        unsigned char count = 0; // čítač záznamů k odeslání (maximálně 30)
 
-        for (; count < NETFLOW_MAX_EXPORTED_PACKETS && !m.empty(); count++) {
-            FlowCounter++;
+        for (count = 0; count < NETFLOW_MAX_EXPORTED_PACKETS && !m.empty(); count++) {
             netFlowRcd = m.find(key_queue.front())->second; // najdeme nejstarší záznam
             netFlowPacket.netFlowRcd[count] = netFlowRcd;
             m.erase(key_queue.front()); // vymažeme záznam z mapy

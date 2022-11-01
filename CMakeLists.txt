@@ -9,4 +9,4 @@ include(FindPCAP.cmake)
 
 ADD_LIBRARY(libs SHARED pcap.cpp arguments.cpp exporter.cpp)
 TARGET_LINK_LIBRARIES(run libs)
-target_link_libraries(run ${PCAP_LIBRARY})
+TARGET_LINK_LIBRARIES(run ${PCAP_LIBRARY})

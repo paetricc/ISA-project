@@ -206,7 +206,7 @@ void checkPcktsToExport(struct pcap_pkthdr h, struct options options) {
         }
         // exportování inaktivního časovače
         // SysUptime aktuálního paketu - SysUptime prvního výskytu paketu >= inaktivní časovač (v milisekundách)
-        if (getUptimeDiff(h.ts) - ntohl(iterator.second.Last) >= options.in_timer * 1000) {
+        else if (getUptimeDiff(h.ts) - ntohl(iterator.second.Last) >= options.in_timer * 1000) {
             queue.emplace_back(iterator); // a do fronty k odstranění vložíme záznam
         }
     }

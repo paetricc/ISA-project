@@ -5,7 +5,7 @@
  *
  * Autor: Tomáš Bártů, xbartu11
  *
- * Datum: 2.11.2022
+ * Datum: 9.11.2022
  *****************************************************************************/
 
 #include "pcap.h"
@@ -31,6 +31,8 @@ void pcapInit(options options) {
 
     if (pcap_setfilter(handle, &filter) == PCAP_ERROR) // aplikujeme filtr
         err(EXIT_FAILURE, "pcap_setfilter() failed");
+
+    pcap_freecode(&filter); // uvolnění paměti
 
     if (pcap_loop(handle, 0, handler, (u_char *) &options) == PCAP_ERROR) // čteme jednotlivé pakety z .pcap souboru a zpracováváme je callbackem (funkcí handler())
         err(EXIT_FAILURE, "pcap_loop() failed");   // nastala chyba při čtení
@@ -201,14 +203,12 @@ void checkPcktsToExport(struct pcap_pkthdr h, struct options options) {
     for (auto &iterator: m) { // iterujeme mapou a hledám záznamy, kterým vypršel alespoň jeden z časovačů
         // exportování aktivního časovače
         // SysUptime aktuálního paketu - SysUptime poslední aktualizace paketu >= aktivní časovač (v milisekundách)
-        if (getUptimeDiff(h.ts) - ntohl(iterator.second.First) >= options.ac_timer * 1000) {
+        if (getUptimeDiff(h.ts) - ntohl(iterator.second.First) >= options.ac_timer * 1000)
             queue.emplace_back(iterator); // a do fronty k odstranění vložíme záznam
-        }
-        // exportování inaktivního časovače
-        // SysUptime aktuálního paketu - SysUptime prvního výskytu paketu >= inaktivní časovač (v milisekundách)
-        else if (getUptimeDiff(h.ts) - ntohl(iterator.second.Last) >= options.in_timer * 1000) {
+            // exportování inaktivního časovače
+            // SysUptime aktuálního paketu - SysUptime prvního výskytu paketu >= inaktivní časovač (v milisekundách)
+        else if (getUptimeDiff(h.ts) - ntohl(iterator.second.Last) >= options.in_timer * 1000)
             queue.emplace_back(iterator); // a do fronty k odstranění vložíme záznam
-        }
     }
 
     export_queue_flows(queue, options);
@@ -254,7 +254,7 @@ void export_rest_flows(struct options options) {
     struct NetFlowPacket netFlowPacket{};
     struct NetFlowHDR    netFlowHdr{};
     struct NetFlowRCD    netFlowRcd{};
-    int count = 0; // čítač záznamů k odeslání (maximálně 30)
+    int count; // čítač záznamů k odeslání (maximálně 30)
 
     while (!m.empty()) { // dokud je nějaký záznam v mapě
 

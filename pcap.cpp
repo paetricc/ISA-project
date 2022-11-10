@@ -15,6 +15,16 @@ vector<tuple<string, string, int, int, int, int>> key_queue;         // fronta k
 struct timeval SysUptime, LastUptime = {0, 0};                       // struktury k uchování času přijmu úplně prvního paketu a času aktuálně zpracovávaného paketu
 uint32_t FlowCounter = 0;                                            // čítač vytvořených flowů
 
+/*****************************************************************************
+*    Title: IPK-projekt2
+*    Author: Tomáš Bártů
+*    Date: 2022
+*    Code version: 1.0.0
+*    Availability: https://github.com/paetricc/IPK-project2
+*    Note: Byla převzata základní funkcionalita pro funkci pcapInit()
+ *         z funkce main()
+ *
+******************************************************************************/
 void pcapInit(options options) {
     pcap_t *handle;
     struct bpf_program filter{};          // pro uložení filtru a následnou aplikaci na pcap_setfilter
@@ -41,7 +51,20 @@ void pcapInit(options options) {
 
     export_rest_flows(options); // vyexportujeme zbytek záznamů z cache
 }
+/******************************************************************************
+ *  End of citatiom
+ ******************************************************************************/
 
+/*****************************************************************************
+*    Title: IPK-projekt2
+*    Author: Tomáš Bártů
+*    Date: 2022
+*    Code version: 1.0.0
+*    Availability: https://github.com/paetricc/IPK-project2
+*    Note: Byla převzata základní funkcionalita pro funkci handler()
+ *         z funkce handler()
+ *
+******************************************************************************/
 void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
     auto *options    = (struct options *) user;       // z uživatelského vstupu si zjistíme strukturu se zadanými vstupními argumenty
     auto *eth_header = (struct ether_header *) bytes; // z přijatých bajtů si zjistíme ethernetovou hlavičku
@@ -177,6 +200,9 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
         }
     }
 }
+/******************************************************************************
+ *  End of citatiom
+ ******************************************************************************/
 
 uint32_t getUptimeDiff(struct timeval ts) {
     uint32_t sec, usec;

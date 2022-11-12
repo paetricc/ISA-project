@@ -5,7 +5,7 @@
  *
  * Autor: Tomáš Bártů, xbartu11
  *
- * Datum: 9.11.2022
+ * Datum: 11.11.2022
  *****************************************************************************/
 
 #include "pcap.h"
@@ -22,8 +22,8 @@ uint32_t FlowCounter = 0;                                            // čítač
 *    Code version: 1.0.0
 *    Availability: https://github.com/paetricc/IPK-project2
 *    Note: Byla převzata základní funkcionalita pro funkci pcapInit()
- *         z funkce main()
- *
+*          z funkce main()
+*
 ******************************************************************************/
 void pcapInit(options options) {
     pcap_t *handle;
@@ -52,8 +52,8 @@ void pcapInit(options options) {
     export_rest_flows(options); // vyexportujeme zbytek záznamů z cache
 }
 /******************************************************************************
- *  End of citatiom
- ******************************************************************************/
+*    End of citation
+*******************************************************************************/
 
 /*****************************************************************************
 *    Title: IPK-projekt2
@@ -62,8 +62,8 @@ void pcapInit(options options) {
 *    Code version: 1.0.0
 *    Availability: https://github.com/paetricc/IPK-project2
 *    Note: Byla převzata základní funkcionalita pro funkci handler()
- *         z funkce handler()
- *
+*          z funkce handler()
+*
 ******************************************************************************/
 void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
     auto *options    = (struct options *) user;       // z uživatelského vstupu si zjistíme strukturu se zadanými vstupními argumenty
@@ -77,7 +77,7 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
 
     LastUptime = h->ts; // timestamp posledního zpracovávaného paketu
 
-    checkPcktsToExport(*h, *options); // kontrola zda některé záznamy z cache již lze vyexportovat
+    checkTimers(*h, *options); // kontrola zda některé záznamy z cache již lze vyexportovat
 
     if (ntohs(eth_header->ether_type) == ETHERTYPE_IP) {
         auto *ip_header = (struct ip *) (bytes + ETH_HLEN);     // z přijatých bajtů si zjistíme ip hlavičku
@@ -108,6 +108,8 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
                                                 UNDEFINED, UNDEFINED,
                                                 ip_header->ip_p, ip_header->ip_tos,
                                                 UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+
+                checkSize(*options);     // kontrola plnosti NetFlow cache
                 key_queue.emplace_back(key); // do fronty přijatých paketů vložíme klíč
                 m.insert(make_pair(key, netFlowRcd));
             } else { // klíč je v mapě a tak pouze aktualizujeme hodnoty
@@ -142,6 +144,8 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
                                                 UNDEFINED, UNDEFINED,
                                                 ip_header->ip_p, ip_header->ip_tos,
                                                 UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+
+                checkSize(*options);     // kontrola plnosti NetFlow cache
                 key_queue.emplace_back(key); // do fronty přijatých paketů vložíme klíč
                 m.insert(make_pair(key, netFlowRcd));
             } else { // klíč je v mapě a tak pouze aktualizujeme hodnoty
@@ -176,6 +180,8 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
                                                 UNDEFINED,
                                                 tcp_header->th_flags, ip_header->ip_p, ip_header->ip_tos,
                                                 UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED, UNDEFINED};
+
+                checkSize(*options);     // kontrola plnosti NetFlow cache
                 key_queue.emplace_back(key); // do fronty přijatých paketů vložíme klíč
                 m.insert(make_pair(key, netFlowRcd));
             } else { // klíč je v mapě a tak pouze aktualizujeme hodnoty
@@ -201,8 +207,8 @@ void handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
     }
 }
 /******************************************************************************
- *  End of citatiom
- ******************************************************************************/
+*    End of citation
+*******************************************************************************/
 
 uint32_t getUptimeDiff(struct timeval ts) {
     uint32_t sec, usec;
@@ -217,24 +223,30 @@ uint32_t getUptimeDiff(struct timeval ts) {
     return 1000 * sec + (usec + 500) / 1000;
 }
 
-void checkPcktsToExport(struct pcap_pkthdr h, struct options options) {
+void checkTimers(struct pcap_pkthdr h, struct options options) {
     vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
-
-    if (m.size() == options.count) {       // kontrola zde není plná cache
-        auto iter = key_queue.begin();     // vezmeme si nejstarší záznam
-        auto netflowRCD = m.find(iter[0]); // z něho získáme klíč
-        queue.emplace_back(netflowRCD->first, netflowRCD->second); // a do fronty k odstranění vložíme záznam
-    }
 
     for (auto &iterator: m) { // iterujeme mapou a hledám záznamy, kterým vypršel alespoň jeden z časovačů
         // exportování aktivního časovače
         // SysUptime aktuálního paketu - SysUptime poslední aktualizace paketu >= aktivní časovač (v milisekundách)
         if (getUptimeDiff(h.ts) - ntohl(iterator.second.First) >= options.ac_timer * 1000)
             queue.emplace_back(iterator); // a do fronty k odstranění vložíme záznam
-            // exportování inaktivního časovače
-            // SysUptime aktuálního paketu - SysUptime prvního výskytu paketu >= inaktivní časovač (v milisekundách)
+            // exportování nektivního časovače
+            // SysUptime aktuálního paketu - SysUptime prvního výskytu paketu >= nektivní časovač (v milisekundách)
         else if (getUptimeDiff(h.ts) - ntohl(iterator.second.Last) >= options.in_timer * 1000)
             queue.emplace_back(iterator); // a do fronty k odstranění vložíme záznam
+    }
+
+    export_queue_flows(queue, options);
+}
+
+void checkSize(struct options options) {
+    vector<pair<tuple<string, string, int, int, int, int>, NetFlowRCD>> queue;
+
+    if (m.size() == options.count) {       // kontrola zde není plná cache
+        auto iter = key_queue.begin();     // vezmeme si nejstarší záznam
+        auto netflowRCD = m.find(iter[0]); // z něho získáme klíč
+        queue.emplace_back(netflowRCD->first, netflowRCD->second); // a do fronty k odstranění vložíme záznam
     }
 
     export_queue_flows(queue, options);

@@ -6,7 +6,7 @@
  *
  * Autor: Tomáš Bártů, xbartu11
  *
- * Datum: 18.10.2022
+ * Datum: 11.11.2022
  *****************************************************************************/
 
 #ifndef ISA_PROJECT_PACKET_H
@@ -108,19 +108,22 @@ void handler(u_char *, const struct pcap_pkthdr *, const u_char *);
 uint32_t getUptimeDiff(struct timeval);
 
 /**
- * Funkce při níž dochází ke kontrole zda jednotlivé záznamy stále odpovídají jednotlivým časovačům
- * nebo zda cache záznamů není plná.
+ * Funkce při níž dochází ke kontrole zda jednotlivé záznamy stále odpovídají jednotlivým časovačům.
  *
  * Aktivní časovač
  *   getUptimeDiff(čas aktuálně zpracovávaného paketu) - čas v položce Last záznamu >= hodnota aktivního časovače
- * Inaktivní časovač
- *   getUptimeDiff(čas aktuálně zpracovávaného paketu) - čas v položce First záznamu >= hodnota inaktivního časovače
- * Velikost cache
- *   velikost cache = hodnota velikosti cache
+ * Neaktivní časovač
+ *   getUptimeDiff(čas aktuálně zpracovávaného paketu) - čas v položce First záznamu >= hodnota neaktivního časovače
  * Pokud je nějaká z těchto podmínek dojde přidání záznamu do fronty a až se projdou všechny záznamy, tak dojde k
  * poslání všech záznamu z fronty na export_queue_flows
  */
-void checkPcktsToExport(struct pcap_pkthdr, struct options);
+void checkTimers(struct pcap_pkthdr, struct options);
+
+/**
+ *
+ * @param options
+ */
+void checkSize(struct options);
 
 /**
  * Funkce slouží k odstranění jednotlivých záznamů v cache, které jsme přijali z funkce checkPcktsToExport() a

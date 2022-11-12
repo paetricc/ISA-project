@@ -23,7 +23,7 @@
 #include "arguments.h"
 
 /* Velikost bufferu vypočítána jako:
- * maximalní počet flowů v jednom paketu * velikost jednoho flowu + velikost hlavičky flowu + maximalní velikost IPv4 hlavičky + velikost ethernetové hlavičky
+ * maximalní počet flowů v jednom paketu * velikost jednoho flowu + velikost hlavičky flowu + maximální velikost IPv4 hlavičky + velikost ethernetové hlavičky
  * respektive : 30 * 48 + 24 + 60 + 14 = 1538 -> zaokrouhleno na nejbližší větší mocninu dvou, tedy 2048. */
 #define BUFFER 2048
 

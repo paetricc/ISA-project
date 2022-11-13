@@ -8,7 +8,7 @@
  * Datum: 11.11.2022
  *****************************************************************************/
 
-#include "pcap.h"
+#include "pcap.hpp"
 
 map<tuple<string, string, int, int, int, int>, struct NetFlowRCD> m; // cache uchovávající jednotlivé záznamy
 vector<tuple<string, string, int, int, int, int>> key_queue;         // fronta k uchování záznamů nesplňujícíh např. aktivní timer

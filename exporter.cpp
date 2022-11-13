@@ -8,7 +8,7 @@
  * Datum: 20.10.2022
  *****************************************************************************/
 
-#include "exporter.h"
+#include "exporter.hpp"
 
 void exporter(struct NetFlowPacket netFlowPacket, options options, unsigned char count) {
     int _socket;                  // popisovač soketu

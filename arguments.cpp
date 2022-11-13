@@ -8,7 +8,7 @@
  * Datum: 7.10.2022
  *****************************************************************************/
 
-#include "arguments.h"
+#include "arguments.hpp"
 
 void parse_args(int argc, char **argv, options *options) {
     int c;

@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Soubor: exporter.h
+ * Soubor: exporter.hpp
  *
  * Popis: Hlavičkový soubor pro exportér NetFlow paketů
  *
@@ -8,8 +8,8 @@
  * Datum: 20.10.2022
  *****************************************************************************/
 
-#ifndef ISA_PROJECT_EXPORTER_H
-#define ISA_PROJECT_EXPORTER_H
+#ifndef ISA_PROJECT_EXPORTER_HPP
+#define ISA_PROJECT_EXPORTER_HPP
 
 #include <err.h>
 #include <unistd.h>
@@ -19,8 +19,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#include "pcap.h"
-#include "arguments.h"
+#include "pcap.hpp"
+#include "arguments.hpp"
 
 /* Velikost bufferu vypočítána jako:
  * maximalní počet flowů v jednom paketu * velikost jednoho flowu + velikost hlavičky flowu + maximální velikost IPv4 hlavičky + velikost ethernetové hlavičky
@@ -35,4 +35,4 @@ void exporter(struct NetFlowPacket, options, unsigned char);
 
 #endif
 
-/************** Konec souboru exporter.h ***************/
+/************** Konec souboru exporter.hpp ***************/

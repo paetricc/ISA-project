@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Soubor: arguments.h
+ * Soubor: arguments.hpp
  *
  * Popis: Hlavičkový soubor pro analyzátor zadaných argumentů programu
  *
@@ -8,8 +8,8 @@
  * Datum: 7.10.2022
  *****************************************************************************/
 
-#ifndef ISA_PROJECT_ARGUMENTS_H
-#define ISA_PROJECT_ARGUMENTS_H
+#ifndef ISA_PROJECT_ARGUMENTS_HPP
+#define ISA_PROJECT_ARGUMENTS_HPP
 
 #include <cstdlib>
 #include <cctype>
@@ -72,4 +72,4 @@ void process_host_name(options **, const char *);
 
 #endif
 
-/************** Konec souboru arguments.h ***************/
+/************** Konec souboru arguments.hpp ***************/

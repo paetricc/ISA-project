@@ -24,7 +24,7 @@ find_path(PCAP_ROOT_DIR
         )
 
 find_path(PCAP_INCLUDE_DIR
-        NAMES pcap.h
+        NAMES pcap.hpp
         HINTS ${PCAP_ROOT_DIR}/include
         )
 

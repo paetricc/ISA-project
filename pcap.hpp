@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Soubor: packet.h
+ * Soubor: packet.hpp
  *
  * Popis: Hlavičkový soubor pro zachytávání a analýzu zachycené síťové
  * komunikace
@@ -32,8 +32,8 @@
 #include <pcap.h>
 #include <pcap/pcap.h>
 
-#include "arguments.h"
-#include "exporter.h"
+#include "arguments.hpp"
+#include "exporter.hpp"
 
 using namespace std;
 
@@ -149,4 +149,4 @@ string p_ip(const struct ip *, int);
 
 #endif //ISA_PROJECT_PACKET_H
 
-/************** Konec souboru packet.h ***************/
+/************** Konec souboru packet.hpp ***************/

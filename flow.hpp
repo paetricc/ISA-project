@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Soubor: flow.h
+ * Soubor: flow.hpp
  *
  * Popis: Hlavičkový souboru pro generátor NetFlow dat ze zachycené síťové komunikace
  *
@@ -8,10 +8,10 @@
  * Datum: 20.10.2022
  *****************************************************************************/
 
-#ifndef ISA_PROJECT_FLOW_H
-#define ISA_PROJECT_FLOW_H
+#ifndef ISA_PROJECT_FLOW_HPP
+#define ISA_PROJECT_FLOW_HPP
 
-#include "arguments.h"
+#include "arguments.hpp"
 
 /**
  * Hlavní funkce programu
@@ -21,4 +21,4 @@ int main(int, char **);
 
 #endif
 
-/************** Konec souboru flow.h ***************/
+/************** Konec souboru flow.hpp ***************/

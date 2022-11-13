@@ -8,8 +8,8 @@
  * Datum: 20.10.2022
  *****************************************************************************/
 
-#include "flow.h"
-#include "pcap.h"
+#include "flow.hpp"
+#include "pcap.hpp"
 
 int main(int argc, char **argv) {
     options options;                  // struktura pro uchování argumentů programu

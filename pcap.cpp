@@ -296,9 +296,9 @@ void export_rest_flows(struct options options) {
 
     while (!m.empty()) { // dokud je nějaký záznam v mapě
 
-        for (count = 0; count < NETFLOW_MAX_EXPORTED_PACKETS && !m.empty(); count++) {
+        for (count = 0; count < NETFLOW_MAX_EXPORTED_PACKETS && !m.empty(); ) {
             netFlowRcd = m.find(key_queue.front())->second; // najdeme nejstarší záznam
-            netFlowPacket.netFlowRcd[count] = netFlowRcd;
+            netFlowPacket.netFlowRcd[count++] = netFlowRcd;
             m.erase(key_queue.front()); // vymažeme záznam z mapy
             key_queue.erase(key_queue.begin()); // klíč vymažeme z vektoru
         }
@@ -310,6 +310,8 @@ void export_rest_flows(struct options options) {
         // zkompletujeme paket
         netFlowPacket.netFlowHdr = netFlowHdr;
         netFlowPacket.netFlowHdr.count = htons(count);
+
+//        FlowCounter += count;
 
         exporter(netFlowPacket, options, count);
     }

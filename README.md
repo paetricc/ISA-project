@@ -1,73 +1,83 @@
-# ISA-project
+# ISA - Síťové aplikace a správa sítí
 
-### Předmět:
-ISA - Síťové aplikace a správa sítí
-### Ak. rok:
-2022/2023
-### Název:
-Generování NetFlow dat ze zachycené síťové komunikace - Projekt ISA
-### Vedoucí:
-Ing. Matěj Grégr, Ph.D.
-### Popis:
-V rámci projektu implementujte NetFlow exportér, který ze zachycených síťových dat ve formátu pcap vytvoří záznamy NetFlow, které odešle na kolektor.
+Autor: Tomáš Bártů \
+Login: xbartu11
 
-Použití:
-Program musí podporovat následující syntax pro spuštění:
+## Varianta ZETA – Sniffer paketů
 
-./flow [-f \<file\>] [-c \<netflow_collector\>[:\<port\>]] [-a \<active_timer\>] [-i \<inactive_timer\>] [-m \<count\>]
+### Úvod
 
-kde
+Úkolem projektu bylo vytvořit v síťový analyzátor, který dle zadaných parametrů bude moci filtrovat {rámce, pakety,
+datagramy, segmenty} a vypsat zajímavé údaje, které obsahují. Například zdrojovou nebo cílovou Media Access Control
+adresu, zkráceně MAC adresu. Či vypsat zdrojový a cílový port protokolu TCP. Dalším úkolem bylo vypsat payload v bajtové
+podobě tak i ve znakové.
 
--f <file> jméno analyzovaného souboru nebo STDIN,
+### Schopnosti programu
 
--c <netflow_collector:port> IP adresa, nebo hostname NetFlow kolektoru. volitelně i UDP port (127.0.0.1:2055, pokud není specifikováno),
+Program by měl umožňovat vše, co bylo požadováno v zadání. Nad rámce zadání program vypisuje při přepínači --arp data
+navíc a to informace obsažené v datové části paketu a to zdrojovou MAC adresu a zdrojovou IP adresu odesílatele plus (v
+případě žádosti) MAC adresu ff:ff:ff:ff:ff:ff a IP adresu hledaného.
 
--a <active_timer> - interval v sekundách, po kterém se exportují aktivní záznamy na kolektor (60, pokud není specifikováno),
+### Příklad spuštění
 
--i <inactive_timer> - interval v sekundách, po jehož vypršení se exportují neaktivní záznamy na kolektor (10, pokud není specifikováno),
+Předpokládáme, že program spouštíme poprvé. Je ho tedy nutné nejdříve přeložít pomocí přiloženého Makefilu.
 
--m <'count> - velikost flow-cache. Při dosažení max. velikosti dojde k exportu nejstaršího záznamu v cachi na kolektor (1024, pokud není specifikováno).
+```
+$ make
+```
 
-Všechny parametry jsou brány jako volitelné. Pokud některý z parametrů není uveden, použije se místo něj výchozí hodnota.
+Přiložený Makefile disponuje i cílem clean, který vymaže vytvořené binární soubory
 
-__Příklad použití:__
+```
+$ make clean
+```
 
-./flow -f input.pcap -c 192.168.0.1:2055
+Po provedení prvního příkazu máme přeložený program, takže ho můžeme spustit. Program je třeba spustit pod rootovským
+opravněním.
 
-__Implementace:__
+```
+$ sudo ./packetsniffer -i
+enp0s3
+lo
+any
+bluetooth-monitor
+nflog
+nfqueue
+```
 
-Implementujte v jazyku C/C++, za pomoci knihovny libpcap.
+Nyní si budeme chtít například odchytit ICMP protokol. Použijeme tedy následující příkaz.
 
-__Upřesnění zadání:__
+```
+$ sudo ./packetsniffer -i lo --icmp
+timestamp: 2022-04-24T21:08:13.654516+0200
+src MAC: 00:00:00:00:00:00
+dst MAC: 00:00:00:00:00:00
+frame length: 98 bytes
+src IP: 127.0.0.1
+dest IP: 127.0.0.1
 
-* Jako export stačí použít NetFlow v5. Pokud byste implementovali v9 se šablonami, bude to bonusově zohledněno v hodnocení projektu.
-*  Pro vytváření flow stačí podpora protokolů TCP, UDP, ICMP.
-* Informace, které neznáte (srcAS, dstAS, next-hop, aj.) nastavte jako nulové.
-* Při exportování používejte původní časové značky zachycené komunikace.
-* Pro testování můžete využít nástroje ze sady nfdump (nfdump, nfcapd, nfreplay, ...).
-* Pro vytvoření vlastního testovacího souboru můžete použít program tcpdump.
-* Exportované NetFlow data by měla být čitelná nástrojem nfdump.
+0x0010  00 00 00 00 00 00 00 00  00 00 00 00 08 00 45 00     ........ ......E.
+0x0020  00 54 23 b1 40 00 40 01  18 f6 7f 00 00 01 7f 00     .T#.@.@. ........
+0x0030  00 01 08 00 1f 2c 00 01  00 01 1d a0 65 62 00 00     .....,.. ....eb..
+0x0040  00 00 8d fc 09 00 00 00  00 00 10 11 12 13 14 15     ........ ........
+0x0050  16 17 18 19 1a 1b 1c 1d  1e 1f 20 21 22 23 24 25     ........ .. !"#$%
+0x0060  26 27 28 29 2a 2b 2c 2d  2e 2f 30 31 32 33 34 35     &'()*+,- ./012345
+0x0070  36 37                                                67
+```
+Na výstupu si můžeme povšimnout například délky rámce v bytech či timestampu.
 
-__Odevzdání:__
+### Jednotlivé přepínače
+* --interface či -i – zobrazí seznam dostupných zařízení
+* --port či -p – bude filtrovat dle zadaného čísla portu
+* --tcp či -t – bude filtrovat pouze TCP protokol
+* --udp či -u – bude filtrovat pouze UDP protokol
+* --icmp či -I – bude filtrovat pouze ICMP protokol
+* --arp či -a – bude filtrovat pouze ARP protokol
+* --number či -n – zobrazí a zachytí informace tolikrát, koliktrát o ně bylo požádáno
 
-Odevzdaný projekt musí obsahovat:
-
-1. soubor se zdrojovým kódem,
-2. funkční Makefile pro překlad zdrojového souboru,
-3. dokumentaci (soubor manual.pdf), která bude obsahovat uvedení do problematiky, návrhu aplikace, popis implementace, základní informace o programu, návod na použití. V dokumentaci se očekává následující: titulní strana, obsah, logické strukturování textu, přehled nastudovaných informací z literatury, popis zajímavějších pasáží implementace, použití vytvořených programů a literatura.
-4. soubor flow.1 ve formátu a syntaxi manuálové stránky - viz https://liw.fi/manpages/
-
-Vypracovaný projekt uložený v archívu .tar a se jménem xlogin00.tar odevzdejte elektronicky přes IS. Soubor nekomprimujte.
-
-__Spuštění, testování:__
-
-Všechny nezbytné úkony pro přípravu spuštění Vaší aplikace musí proběhnout zadáním příkazu __make__, ať už si vyberete kterýkoliv jazyk.
-
-__Doporučená literatura:__
-
-* Studijní materiály k předmětu ISA - NetFlow
-* NetFlow na Wikipedia.org - https://en.wikipedia.org/wiki/NetFlow
-* Formát NetFlow datagramu - http://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html#wp1003394 [Table B-3 a Table B-4]
-* man nfdump
-* man nfcapd
-* man libpcap
+### Seznam souborů
+* packetsniffer.c
+* packetsniffer.h
+* Makefile
+* README.md
+* manual.pdf
